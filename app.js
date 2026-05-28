@@ -177,7 +177,6 @@ function showMode(mode) {
   document.getElementById('mode-chat').style.display   = mode === 'chat'   ? 'block' : 'none';
   document.getElementById('mode-quiz').style.display   = mode === 'quiz'   ? 'block' : 'none';
   document.getElementById('mode-review').style.display = mode === 'review' ? 'block' : 'none';
-  document.getElementById('mode-chat-peer').style.display = 'none';
   if (mode === 'chat')   initChat();
   if (mode === 'quiz')   { quizIdx = 0; renderQuiz(); }
   if (mode === 'review') renderReview();
@@ -354,14 +353,18 @@ const PEER_CHATS = {
  
 function openPeerChat(name) {
   activeChatPeer = name;
-  document.getElementById('learn-main').style.display  = 'none';
-  document.getElementById('mode-chat').style.display   = 'none';
-  document.getElementById('mode-quiz').style.display   = 'none';
-  document.getElementById('mode-review').style.display = 'none';
  
-  const screen = document.getElementById('mode-chat-peer');
-  screen.style.display = 'block';
-  document.getElementById('peerChatTitle').textContent = name + '와 대화';
+  // 탭3(또래·멘토)으로 이동
+  document.querySelectorAll('#student-app .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#student-app .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-match').classList.add('active');
+  document.querySelectorAll('#student-app .tab-btn')[2].classList.add('active');
+ 
+  // 매칭 목록 숨기고 채팅창 표시
+  document.getElementById('mt-peer').style.display      = 'none';
+  document.getElementById('mt-mentor').style.display    = 'none';
+  document.getElementById('peer-chat-screen').style.display = 'block';
+  document.getElementById('peerChatTitle').textContent  = name + '와 대화';
  
   const box = document.getElementById('peerMessages');
   box.innerHTML = '';
@@ -372,16 +375,11 @@ function openPeerChat(name) {
     box.appendChild(d);
   });
   box.scrollTop = box.scrollHeight;
- 
-  // 탭3으로 이동
-  document.querySelectorAll('#student-app .tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('#student-app .tab-btn').forEach(b => b.classList.remove('active'));
 }
  
 function closePeerChat() {
-  document.getElementById('mode-chat-peer').style.display = 'none';
-  document.getElementById('tab-match').classList.add('active');
-  document.querySelectorAll('#student-app .tab-btn')[2].classList.add('active');
+  document.getElementById('peer-chat-screen').style.display = 'none';
+  document.getElementById('mt-peer').style.display = 'block';
 }
  
 function sendPeerMsg() {
