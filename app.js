@@ -66,21 +66,31 @@ ${langMap[lang]} 번역
 /* ── API 호출 (Netlify Function 경유) ── */
 async function callAI(userMessage) {
   convHistory.push({ role: 'user', content: userMessage });
+  let response;
+  try {
+    response = await fetch('/.netlify/functions/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: buildSystemPrompt(),
+        messages: convHistory
+      })
+    });
+  } catch (fetchErr) {
+    throw new Error('네트워크 오류: ' + fetchErr.message);
+  }
 
-  const response = await fetch('/.netlify/functions/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system: buildSystemPrompt(),
-      messages: convHistory
-    })
-  });
+  const rawText = await response.text();
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${rawText}`);
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch (e) {
+    throw new Error('JSON 파싱 오류: ' + rawText.slice(0, 200));
+  }
 
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message || data.error);
-
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   const reply = data.choices?.[0]?.message?.content || '죄송해요, 다시 시도해 주세요.';
   convHistory.push({ role: 'assistant', content: reply });
   if (convHistory.length > 20) convHistory = convHistory.slice(-20);
@@ -176,7 +186,7 @@ async function sendMessage() {
     updateDash();
   } catch (err) {
     typing.remove();
-    let errMsg = '연결에 문제가 생겼어요. 잠시 후 다시 시도해주세요.';
+    let errMsg = err.message;
     if (err.message.includes('401'))    errMsg = '❌ API Key 오류예요. Netlify 환경변수를 확인해주세요.';
     else if (err.message.includes('429')) errMsg = '⏳ 잠시 후 다시 시도해주세요.';
     addBubble(`<span style="color:var(--red)">${errMsg}</span>`, 'ai');
