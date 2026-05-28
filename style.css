@@ -596,5 +596,14 @@ html, body {
 
 /* ── 반응형 ── */
 @media (min-width: 480px) {
-  .app { box-shadow: 0 0 40px rgba(0,0,0,0.1); }
+  body {
+    display: flex;
+    justify-content: center;
+    background: #e8ede9;
+  }
+  .app {
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(0,0,0,0.15);
+  }
 }
