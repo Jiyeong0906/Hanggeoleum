@@ -1,5 +1,9 @@
-
-/* ── 상태 관리 ── */
+/* ════════════════════════════════════════
+   한걸음 — app.js  (학생/멘토 분리 버전)
+════════════════════════════════════════ */
+ 
+/* ── 전역 상태 ── */
+let viewMode = 'student'; // 'student' | 'mentor'
 let lang = 'zh', langName = '중국어', langFlag = '🇨🇳';
 let cat = 'school', catName = '학교생활';
 let userLevel = '기초';
@@ -8,15 +12,49 @@ let wrongWords = [];
 let quizIdx = 0;
 let convHistory = [];
 let evalIdx = 0, evalScore = 0;
-let isMentorView = false;
+let activeChatPeer = null; // 현재 열린 대화 상대
  
 /* ── 부정적 언어 필터 ── */
-const BAD_WORDS = ['씨발','개새끼','병신','바보','멍청','죽어','지랄','fuck','shit','bitch','damn','asshole','stupid','idiot','hate'];
+const BAD_WORDS = ['씨발','개새끼','병신','바보','멍청','죽어','지랄','fuck','shit','bitch','damn','asshole','stupid','idiot'];
+function containsBadWord(t) { const l=t.toLowerCase(); return BAD_WORDS.some(w=>l.includes(w)); }
  
-function containsBadWord(text) {
-  const lower = text.toLowerCase();
-  return BAD_WORDS.some(w => lower.includes(w));
-}
+/* ── 퀴즈 데이터 (언어별 번역 포함) ── */
+const QUIZ_DATA = {
+  school: [
+    { q:'"급식"의 뜻은?', hint:'학교에서 점심을 먹는 것과 관련 있어요',
+      opts:['학교 점심 식사','방과후 숙제 시간','체육 수업','교실 청소'], ans:0,
+      word:'급식', trans:{ vi:'Bữa ăn trưa tại trường', zh:'学校午餐', tl:'Tanghalian sa paaralan' } },
+    { q:'"조회"는 무엇을 하는 시간인가요?', hint:'아침에 전교생이 모이는 시간이에요',
+      opts:['수영 수업','아침 전체 모임','점심 급식 시간','방과후 청소'], ans:1,
+      word:'조회', trans:{ vi:'Chào cờ buổi sáng', zh:'早会', tl:'Pagtitipon sa umaga' } },
+    { q:'"체육"은 어떤 과목인가요?', hint:'운동장이나 체육관에서 배우는 수업이에요',
+      opts:['음악 수업','미술 수업','운동 수업','수학 수업'], ans:2,
+      word:'체육', trans:{ vi:'Thể dục', zh:'体育课', tl:'Pisikal na Edukasyon' } },
+    { q:'"청소당번"이란?', hint:'교실을 깨끗하게 하는 역할이에요',
+      opts:['도서관 정리 학생','교실 청소 담당 학생','선생님 심부름 학생','급식 배식 학생'], ans:1,
+      word:'청소당번', trans:{ vi:'Học sinh trực nhật', zh:'值日生', tl:'Taong nagliligpit ng silid-aralan' } },
+    { q:'"숙제"는 언제 하는 것인가요?', hint:'집에 가져가서 하는 공부예요',
+      opts:['학교에서 선생님과','급식 시간에','집에서 스스로 하는 공부','체육 시간에'], ans:2,
+      word:'숙제', trans:{ vi:'Bài tập về nhà', zh:'作业', tl:'Takdang-aralin' } }
+  ],
+  subject: [
+    { q:'"증발"이란 무엇인가요?', hint:'물이 사라지는 현상과 관련 있어요',
+      opts:['물이 얼어붙는 것','물이 기체로 변하는 것','물이 더러워지는 것','물이 흘러내리는 것'], ans:1,
+      word:'증발', trans:{ vi:'Bốc hơi', zh:'蒸发', tl:'Pagsingaw' } },
+    { q:'"분수"는 무엇인가요?', hint:'수학에서 나누기를 표현하는 방법이에요',
+      opts:['덧셈 기호','두 수의 비율을 나타내는 수','큰 숫자','음수'], ans:1,
+      word:'분수', trans:{ vi:'Phân số', zh:'分数', tl:'Paksyon' } },
+    { q:'"민주주의"는 어떤 제도인가요?', hint:'국민이 주인인 나라를 만드는 제도예요',
+      opts:['왕이 모든 것을 결정','국민이 스스로 다스리는 제도','군인이 통치하는 제도','종교 지도자가 통치'], ans:1,
+      word:'민주주의', trans:{ vi:'Dân chủ', zh:'民主主义', tl:'Demokrasya' } },
+    { q:'"광합성"은 무엇인가요?', hint:'식물이 햇빛으로 양분을 만드는 과정이에요',
+      opts:['동물이 잠자는 것','식물이 햇빛으로 영양분을 만드는 것','물이 증발하는 것','바람이 부는 것'], ans:1,
+      word:'광합성', trans:{ vi:'Quang hợp', zh:'光合作用', tl:'Photosynthesis' } },
+    { q:'"받아쓰기"란?', hint:'선생님이 읽어주는 것을 직접 쓰는 활동이에요',
+      opts:['그림 그리기','읽어주는 말을 받아 쓰는 것','수학 문제 풀기','체육 활동'], ans:1,
+      word:'받아쓰기', trans:{ vi:'Nghe đọc chép', zh:'听写', tl:'Diktasyon' } }
+  ]
+};
  
 /* ── 초기화 ── */
 window.addEventListener('DOMContentLoaded', () => {
@@ -29,88 +67,78 @@ window.addEventListener('DOMContentLoaded', () => {
   updateLevelUI();
 });
  
-/* ── 시스템 프롬프트 생성 ── */
+/* ── 시스템 프롬프트 ── */
 function buildSystemPrompt() {
-  const langMap = {
-    vi: '베트남어(Tiếng Việt)',
-    zh: '중국어(中文)',
-    tl: '필리핀어(Filipino/Tagalog)'
-  };
-  const catMap = {
-    school:  '학교생활 어휘 (교실 표현, 급식, 체육, 청소당번, 조회, 숙제, 담임선생님께 하는 말 등)',
-    subject: '교과 어휘 (국어·수학·과학·사회 과목의 핵심 용어)'
-  };
+  const langMap = { vi:'베트남어(Tiếng Việt)', zh:'중국어(中文)', tl:'필리핀어(Filipino/Tagalog)' };
+  const catMap  = { school:'학교생활 어휘 (교실 표현, 급식, 체육, 청소당번, 조회, 숙제 등)', subject:'교과 어휘 (국어·수학·과학·사회 핵심 용어)' };
   const levelMap = {
-    '입문': `- 한글 자모부터 학습 필요\n- 설명은 100% ${langMap[lang]}로\n- 문장은 3단어 이내로 매우 짧게\n- 기초 학교생활 표현 위주`,
-    '기초': `- 일상 회화 가능, 교과·학교 어휘 부족\n- 설명은 ${langMap[lang]}로 (한국어 단어는 한국어로 강조)\n- 1~2문장 예문 포함\n- 실용적인 표현 위주`,
-    '중급': `- 일상 대화 가능, 교과 어휘 심화 필요\n- 설명은 한국어로, 어려운 부분만 ${langMap[lang]} 보충\n- 문법 설명 간단히 포함`,
-    '고급': `- 한국어 대부분 가능, 심화 표현 필요\n- 설명은 한국어로만\n- 어원·뉘앙스 차이까지 설명`
+    '입문': `- 설명은 100% ${langMap[lang]}로\n- 문장은 3단어 이내`,
+    '기초': `- 설명은 ${langMap[lang]}로\n- 한국어 단어 강조 + 예문 포함`,
+    '중급': `- 한국어로 설명, 어려운 부분만 ${langMap[lang]} 보충`,
+    '고급': `- 한국어로만 설명, 어원·뉘앙스까지`
   };
- 
   return `너는 경기도 다문화 학생을 위한 한국어 학습 AI 선생님이야.
- 
-[학생 정보]
-- 모국어: ${langMap[lang]}
-- 한국어 수준: ${userLevel}
-- 학습 카테고리: ${catMap[cat]}
- 
-[수준별 가이드]
-${levelMap[userLevel] || levelMap['기초']}
- 
-[응답 형식 — 반드시 준수]
-학생이 단어나 표현을 물어보면:
- 
-**한국어 단어** (한자 표기가 있으면 한자도)
+[학생 정보] 모국어: ${langMap[lang]} | 수준: ${userLevel} | 카테고리: ${catMap[cat]}
+[수준별 가이드] ${levelMap[userLevel]||levelMap['기초']}
+[응답 형식]
+**한국어 단어**
 ${langMap[lang]} 번역
-뜻: (쉽고 짧게 1~2문장)
+뜻: (1~2문장)
 예문: "한국어 예문" → ${langMap[lang]} 번역
-💡 팁: (비슷한 단어나 추가 도움말 — 선택사항)
- 
-[규칙]
-- 친근하고 따뜻한 톤 😊
-- 한 번에 하나의 단어/표현에 집중
-- 학생이 인사하면 모국어로 친근하게 응답하고 학습 유도
-- 잘했을 때는 칭찬과 격려를 아끼지 마`;
+[규칙] 친근하고 따뜻하게 😊 | 한 번에 하나의 단어 집중 | 칭찬 아끼지 말기`;
 }
  
-/* ── API 호출 (Netlify Function 경유) ── */
+/* ── API 호출 ── */
 async function callAI(userMessage) {
-  convHistory.push({ role: 'user', content: userMessage });
+  convHistory.push({ role:'user', content:userMessage });
   let response;
   try {
     response = await fetch('/.netlify/functions/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system: buildSystemPrompt(),
-        messages: convHistory
-      })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ system: buildSystemPrompt(), messages: convHistory })
     });
-  } catch (fetchErr) {
-    throw new Error('네트워크 오류: ' + fetchErr.message);
-  }
- 
-  const rawText = await response.text();
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${rawText}`);
- 
+  } catch(e) { throw new Error('네트워크 오류: '+e.message); }
+  const raw = await response.text();
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${raw}`);
   let data;
-  try {
-    data = JSON.parse(rawText);
-  } catch (e) {
-    throw new Error('JSON 파싱 오류: ' + rawText.slice(0, 200));
-  }
- 
+  try { data = JSON.parse(raw); } catch(e) { throw new Error('파싱 오류: '+raw.slice(0,200)); }
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  const reply = data.choices?.[0]?.message?.content || '죄송해요, 다시 시도해 주세요.';
-  convHistory.push({ role: 'assistant', content: reply });
+  const reply = data.choices?.[0]?.message?.content || '다시 시도해 주세요.';
+  convHistory.push({ role:'assistant', content:reply });
   if (convHistory.length > 20) convHistory = convHistory.slice(-20);
   return reply;
 }
  
-/* ── 탭 전환 ── */
+/* ════════════════════
+   화면 전환 (학생 ↔ 멘토)
+════════════════════ */
+function switchViewMode(mode) {
+  viewMode = mode;
+  const studentView = document.getElementById('student-app');
+  const mentorView  = document.getElementById('mentor-app');
+  const btnStudent  = document.getElementById('btnStudent');
+  const btnMentor   = document.getElementById('btnMentor');
+ 
+  if (mode === 'student') {
+    studentView.style.display = 'flex';
+    mentorView.style.display  = 'none';
+    btnStudent.classList.add('active');
+    btnMentor.classList.remove('active');
+  } else {
+    studentView.style.display = 'none';
+    mentorView.style.display  = 'flex';
+    btnStudent.classList.remove('active');
+    btnMentor.classList.add('active');
+    renderMentorDash();
+  }
+}
+ 
+/* ════════════════════
+   학생 탭 전환
+════════════════════ */
 function switchTab(tab, el) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#student-app .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#student-app .tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   el.classList.add('active');
   if (tab === 'dash') updateDash();
@@ -123,6 +151,8 @@ function selectLang(el, code, name, flag, native) {
   el.classList.add('selected');
   convHistory = [];
   updateChatLabels();
+  // 퀴즈 데이터 언어 갱신
+  wrongWords = wrongWords.map(w => ({ ...w, trans: w.transAll?.[code] || w.trans }));
 }
  
 function selectCat(el, code, name) {
@@ -134,17 +164,20 @@ function selectCat(el, code, name) {
 }
  
 function updateChatLabels() {
-  const flags = { vi: '🇻🇳', zh: '🇨🇳', tl: '🇵🇭' };
-  document.getElementById('chatTitle').textContent = `${flags[lang]} ${langName} · ${catName}`;
-  document.getElementById('chatSub').textContent   = `${userLevel} 수준 · ${langName} 설명`;
+  const flags = { vi:'🇻🇳', zh:'🇨🇳', tl:'🇵🇭' };
+  const t = document.getElementById('chatTitle');
+  const s = document.getElementById('chatSub');
+  if (t) t.textContent = `${flags[lang]} ${langName} · ${catName}`;
+  if (s) s.textContent = `${userLevel} 수준 · ${langName} 설명`;
 }
  
 /* ── 모드 전환 ── */
 function showMode(mode) {
-  document.getElementById('learn-main').style.display   = mode ? 'none' : 'block';
-  document.getElementById('mode-chat').style.display    = mode === 'chat'   ? 'block' : 'none';
-  document.getElementById('mode-quiz').style.display    = mode === 'quiz'   ? 'block' : 'none';
-  document.getElementById('mode-review').style.display  = mode === 'review' ? 'block' : 'none';
+  document.getElementById('learn-main').style.display  = mode ? 'none' : 'block';
+  document.getElementById('mode-chat').style.display   = mode === 'chat'   ? 'block' : 'none';
+  document.getElementById('mode-quiz').style.display   = mode === 'quiz'   ? 'block' : 'none';
+  document.getElementById('mode-review').style.display = mode === 'review' ? 'block' : 'none';
+  document.getElementById('mode-chat-peer').style.display = 'none';
   if (mode === 'chat')   initChat();
   if (mode === 'quiz')   { quizIdx = 0; renderQuiz(); }
   if (mode === 'review') renderReview();
@@ -155,46 +188,37 @@ function initChat() {
   convHistory = [];
   document.getElementById('messages').innerHTML = '';
   updateChatLabels();
- 
   const greet = {
-    vi: `Xin chào! Tôi là giáo viên AI của Hanggeoleum 😊<br>Hôm nay chúng ta học từ vựng <strong>${catName}</strong> nhé!<br><span style="font-size:11px;color:var(--muted)">모르는 단어가 있으면 언제든 물어보세요!</span>`,
-    zh: `你好！我是韩语AI老师 😊<br>今天我们来学习<strong>${catName} 어휘</strong>吧！<br><span style="font-size:11px;color:var(--muted)">有不懂的单词随时问我！</span>`,
-    tl: `Kumusta! Ako ang iyong AI teacher para sa Korean 😊<br>Ngayon, pag-aralan natin ang <strong>${catName} na bokabularyo</strong>!<br><span style="font-size:11px;color:var(--muted)">Itanong mo kung may hindi ka maintindihan!</span>`
+    vi: `Xin chào! Tôi là giáo viên AI 😊<br>Hôm nay học <strong>${catName}</strong> nhé!`,
+    zh: `你好！我是韩语AI老师 😊<br>今天学习<strong>${catName} 어휘</strong>吧！`,
+    tl: `Kumusta! Ako ang iyong AI teacher 😊<br>Ngayon, pag-aralan ang <strong>${catName}</strong>!`
   };
   addBubble(greet[lang] || greet.zh, 'ai');
- 
   const chips = {
-    school:  ['급식이 뭐야?','체육이 뭐야?','조회가 뭐야?','숙제가 뭐야?','청소당번이 뭐야?','담임선생님이 뭐야?'],
-    subject: ['증발이 뭐야?','분수가 뭐야?','민주주의가 뭐야?','광합성이 뭐야?','소수가 뭐야?','받아쓰기가 뭐야?']
+    school:  ['급식이 뭐야?','체육이 뭐야?','조회가 뭐야?','숙제가 뭐야?','청소당번이 뭐야?'],
+    subject: ['증발이 뭐야?','분수가 뭐야?','민주주의가 뭐야?','광합성이 뭐야?','받아쓰기가 뭐야?']
   };
   document.getElementById('quickChips').innerHTML = chips[cat].map(c =>
     `<button class="qchip" onclick="quickAsk('${c}')">${c.replace('이 뭐야?','').replace('가 뭐야?','')}</button>`
   ).join('');
 }
  
-function quickAsk(q) {
-  document.getElementById('chatInput').value = q;
-  sendMessage();
-}
+function quickAsk(q) { document.getElementById('chatInput').value = q; sendMessage(); }
  
 /* ── 메시지 전송 ── */
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
- 
-  // 부정적 언어 감지
   if (containsBadWord(msg)) {
     input.value = '';
-    addBubble(`<span style="color:var(--red)">⚠️ 부정적인 언어가 감지되었어요. 바른 말을 사용해 주세요! 😊</span>`, 'ai');
+    addBubble(`<span style="color:#E53E3E">⚠️ 부정적인 언어가 감지되었어요. 바른 말을 사용해 주세요! 😊</span>`, 'ai');
     return;
   }
- 
   input.value = '';
   addBubble(msg, 'user');
   document.getElementById('sendBtn').disabled = true;
   const typing = addTyping();
- 
   try {
     const reply = await callAI(msg);
     typing.remove();
@@ -202,76 +226,64 @@ async function sendMessage() {
     learned++;
     try { localStorage.setItem('hg_learned', learned); } catch(e) {}
     updateDash();
-  } catch (err) {
+  } catch(err) {
     typing.remove();
-    let errMsg = err.message;
-    if (err.message.includes('401'))    errMsg = '❌ API Key 오류예요. Netlify 환경변수를 확인해주세요.';
-    else if (err.message.includes('429')) errMsg = '⏳ 잠시 후 다시 시도해주세요.';
-    addBubble(`<span style="color:var(--red)">${errMsg}</span>`, 'ai');
+    let m = err.message;
+    if (m.includes('401')) m = '❌ API Key 오류예요.';
+    else if (m.includes('429')) m = '⏳ 잠시 후 다시 시도해주세요.';
+    addBubble(`<span style="color:#E53E3E">${m}</span>`, 'ai');
   }
- 
   document.getElementById('sendBtn').disabled = false;
-  const m = document.getElementById('messages');
-  m.scrollTop = m.scrollHeight;
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
 }
  
-function formatText(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
+function formatText(t) {
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
 }
- 
 function addBubble(html, who) {
   const m = document.getElementById('messages');
   const d = document.createElement('div');
   d.className = `msg ${who}`;
-  d.innerHTML = `<div class="msg-av">${who === 'ai' ? '🤖' : '👤'}</div><div class="bubble">${html}</div>`;
-  m.appendChild(d);
-  m.scrollTop = m.scrollHeight;
-  return d;
+  d.innerHTML = `<div class="msg-av">${who==='ai'?'🤖':'👤'}</div><div class="bubble">${html}</div>`;
+  m.appendChild(d); m.scrollTop = m.scrollHeight; return d;
 }
- 
 function addTyping() {
   const m = document.getElementById('messages');
   const d = document.createElement('div');
   d.className = 'msg ai';
   d.innerHTML = `<div class="msg-av">🤖</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
-  m.appendChild(d);
-  m.scrollTop = m.scrollHeight;
-  return d;
+  m.appendChild(d); m.scrollTop = m.scrollHeight; return d;
 }
  
-/* ── 퀴즈 (힌트에서 정답 번역 제거) ── */
-const QUIZ_DATA = [
-  { q:'다음 중 "급식"의 뜻은?', hint:'학교에서 점심을 먹는 것과 관련 있어요', opts:['학교 점심 식사','방과후 숙제 시간','체육 수업','교실 청소'], ans:0, word:'급식', trans:'学校午餐' },
-  { q:'"조회"는 무엇을 하는 시간인가요?', hint:'아침에 전교생이 모이는 시간이에요', opts:['수영 수업','아침 전체 모임','점심 급식 시간','방과후 청소'], ans:1, word:'조회', trans:'早会' },
-  { q:'"체육"은 어떤 과목인가요?', hint:'운동장이나 체육관에서 배우는 수업이에요', opts:['음악 수업','미술 수업','운동 수업','수학 수업'], ans:2, word:'체육', trans:'体育课' },
-  { q:'"청소당번"이란?', hint:'교실을 깨끗하게 하는 역할이에요', opts:['도서관 정리 학생','교실 청소 담당 학생','선생님 심부름 학생','급식 배식 학생'], ans:1, word:'청소당번', trans:'值日生' },
-  { q:'"숙제"는 언제 하는 것인가요?', hint:'집에 가져가서 하는 공부예요', opts:['학교에서 선생님과','급식 시간에','집에서 스스로 하는 공부','체육 시간에'], ans:2, word:'숙제', trans:'作业' }
-];
- 
+/* ════════════════════
+   퀴즈 (선택 언어 기반)
+════════════════════ */
 function renderQuiz() {
-  const q = QUIZ_DATA[quizIdx];
-  document.getElementById('qPfill').style.width  = ((quizIdx+1)/QUIZ_DATA.length*100)+'%';
-  document.getElementById('qPtxt').textContent   = `${quizIdx+1} / ${QUIZ_DATA.length}`;
-  document.getElementById('quizQ').textContent   = q.q;
+  const data = QUIZ_DATA[cat] || QUIZ_DATA.school;
+  const q = data[quizIdx];
+  document.getElementById('qPfill').style.width = ((quizIdx+1)/data.length*100)+'%';
+  document.getElementById('qPtxt').textContent  = `${quizIdx+1} / ${data.length}`;
+  document.getElementById('quizQ').textContent  = q.q;
   document.getElementById('quizHint').textContent = '💡 ' + q.hint;
   document.getElementById('quizOptions').innerHTML = q.opts.map((o,i) =>
     `<button class="quiz-opt" onclick="answerQuiz(${i})"><span class="opt-num">${['A','B','C','D'][i]}</span>${o}</button>`
   ).join('');
-  document.getElementById('quizResult').className   = 'quiz-result';
+  document.getElementById('quizResult').className = 'quiz-result';
   document.getElementById('quizResult').textContent = '';
-  document.getElementById('nextBtn').style.display  = 'none';
+  document.getElementById('nextBtn').style.display = 'none';
 }
  
 function answerQuiz(idx) {
-  const q = QUIZ_DATA[quizIdx];
+  const data = QUIZ_DATA[cat] || QUIZ_DATA.school;
+  const q = data[quizIdx];
   document.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
   totalQ++;
   const res = document.getElementById('quizResult');
+  const trans = q.trans[lang] || q.trans.zh;
   if (idx === q.ans) {
     document.querySelectorAll('.quiz-opt')[idx].classList.add('correct');
-    res.textContent = `✅ 정답이에요! ${q.word} = ${q.trans}`;
+    res.textContent = `✅ 정답! ${q.word} = ${trans}`;
     res.className = 'quiz-result correct';
     correctQ++;
   } else {
@@ -280,30 +292,39 @@ function answerQuiz(idx) {
     res.textContent = '❌ 오답이에요. 복습 목록에 추가됐어요!';
     res.className = 'quiz-result wrong';
     if (!wrongWords.find(w => w.word === q.word)) {
-      wrongWords.push({ word: q.word, trans: q.trans });
+      wrongWords.push({ word: q.word, trans, transAll: q.trans });
       try { localStorage.setItem('hg_wrong', JSON.stringify(wrongWords)); } catch(e) {}
     }
   }
-  document.getElementById('nextBtn').textContent   = quizIdx < QUIZ_DATA.length-1 ? '다음 문제 →' : '퀴즈 완료 🎉';
+  document.getElementById('nextBtn').textContent   = quizIdx < data.length-1 ? '다음 문제 →' : '퀴즈 완료 🎉';
   document.getElementById('nextBtn').style.display = 'block';
   updateDash();
 }
  
 function nextQuiz() {
-  if (quizIdx < QUIZ_DATA.length-1) { quizIdx++; renderQuiz(); }
+  const data = QUIZ_DATA[cat] || QUIZ_DATA.school;
+  if (quizIdx < data.length-1) { quizIdx++; renderQuiz(); }
   else { showMode(null); showToast('퀴즈 완료! 수고했어요 🎉'); }
 }
  
-/* ── 복습 ── */
+/* ════════════════════
+   복습 (선택 언어 기반)
+════════════════════ */
 function renderReview() {
   const el = document.getElementById('reviewContent');
-  if (!wrongWords.length) {
+  // 저장된 단어의 번역을 현재 선택 언어로 갱신
+  const displayWords = wrongWords.map(w => ({
+    word: w.word,
+    trans: w.transAll ? (w.transAll[lang] || w.trans) : w.trans
+  }));
+  if (!displayWords.length) {
     el.innerHTML = `<div class="rv-empty"><div style="font-size:40px;margin-bottom:12px">🌟</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">복습할 단어가 없어요!</div><div style="font-size:12px">퀴즈에서 틀린 단어가 여기에 모여요.</div></div>`;
     return;
   }
+  const flagMap = { vi:'🇻🇳', zh:'🇨🇳', tl:'🇵🇭' };
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">총 ${wrongWords.length}개 단어를 복습해 보세요</div>
-    <div class="rv-list">${wrongWords.map(w=>`
+    <div style="font-size:12px;color:#888;margin-bottom:12px">총 ${displayWords.length}개 · ${flagMap[lang]} ${langName} 번역으로 표시</div>
+    <div class="rv-list">${displayWords.map(w=>`
       <div class="rv-item">
         <div><div class="rv-word">${w.word}</div><div class="rv-trans">${w.trans}</div></div>
         <span class="rv-badge">복습 필요</span>
@@ -317,7 +338,76 @@ function clearReview() {
   renderReview();
 }
  
-/* ── 수준 평가 ── */
+/* ════════════════════
+   또래 채팅
+════════════════════ */
+const PEER_CHATS = {
+  '왕 샤오밍': [
+    { who:'them', text:'안녕! 나도 학교 어휘 공부 중이야 😊' },
+    { who:'me',   text:'반가워! 어떤 단어 배웠어?' },
+    { who:'them', text:'청소당번! 值日生이래. 너는?' },
+  ],
+  '류 하오란': [
+    { who:'them', text:'안녕하세요~ 같이 공부해요!' },
+  ]
+};
+ 
+function openPeerChat(name) {
+  activeChatPeer = name;
+  document.getElementById('learn-main').style.display  = 'none';
+  document.getElementById('mode-chat').style.display   = 'none';
+  document.getElementById('mode-quiz').style.display   = 'none';
+  document.getElementById('mode-review').style.display = 'none';
+ 
+  const screen = document.getElementById('mode-chat-peer');
+  screen.style.display = 'block';
+  document.getElementById('peerChatTitle').textContent = name + '와 대화';
+ 
+  const box = document.getElementById('peerMessages');
+  box.innerHTML = '';
+  (PEER_CHATS[name] || []).forEach(m => {
+    const d = document.createElement('div');
+    d.className = `msg ${m.who === 'me' ? 'user' : 'ai'}`;
+    d.innerHTML = `<div class="msg-av">${m.who === 'me' ? '👤' : '👫'}</div><div class="bubble">${m.text}</div>`;
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+ 
+  // 탭3으로 이동
+  document.querySelectorAll('#student-app .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#student-app .tab-btn').forEach(b => b.classList.remove('active'));
+}
+ 
+function closePeerChat() {
+  document.getElementById('mode-chat-peer').style.display = 'none';
+  document.getElementById('tab-match').classList.add('active');
+  document.querySelectorAll('#student-app .tab-btn')[2].classList.add('active');
+}
+ 
+function sendPeerMsg() {
+  const input = document.getElementById('peerInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (containsBadWord(msg)) {
+    input.value = '';
+    showToast('⚠️ 바른 말을 사용해 주세요!');
+    return;
+  }
+  input.value = '';
+  const box = document.getElementById('peerMessages');
+  const d = document.createElement('div');
+  d.className = 'msg user';
+  d.innerHTML = `<div class="msg-av">👤</div><div class="bubble">${msg}</div>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  if (activeChatPeer && PEER_CHATS[activeChatPeer]) {
+    PEER_CHATS[activeChatPeer].push({ who:'me', text: msg });
+  }
+}
+ 
+/* ════════════════════
+   수준 평가
+════════════════════ */
 const EVAL_DATA = [
   { q:'한국에 온 지 얼마나 됐나요?', opts:['1개월 이내','1~6개월','6개월~1년','1년 이상'], scores:[0,1,2,3] },
   { q:'학교 수업을 얼마나 이해할 수 있나요?', opts:['거의 못 알아들어요','조금 알아들어요','절반 정도 알아들어요','대부분 알아들어요'], scores:[0,1,2,3] },
@@ -336,13 +426,11 @@ function startEval() {
   document.getElementById('eval-screen').style.display = 'block';
   renderEval();
 }
- 
 function closeEval() {
   document.getElementById('eval-screen').style.display = 'none';
   document.getElementById('evalBanner').style.display  = 'flex';
   document.getElementById('learn-main').style.display  = 'block';
 }
- 
 function renderEval() {
   const q = EVAL_DATA[evalIdx];
   document.getElementById('evalPfill').style.width = ((evalIdx+1)/EVAL_DATA.length*100)+'%';
@@ -352,93 +440,102 @@ function renderEval() {
     `<button class="eval-opt" onclick="answerEval(${i})">${o}</button>`
   ).join('');
 }
- 
 function answerEval(idx) {
   evalScore += EVAL_DATA[evalIdx].scores[idx];
   evalIdx++;
   if (evalIdx < EVAL_DATA.length) renderEval();
   else finishEval();
 }
- 
 function finishEval() {
   const ratio = evalScore / (EVAL_DATA.length * 3);
-  let level;
-  if      (ratio < 0.25) level = '입문';
-  else if (ratio < 0.50) level = '기초';
-  else if (ratio < 0.75) level = '중급';
-  else                   level = '고급';
- 
+  let level = ratio < 0.25 ? '입문' : ratio < 0.50 ? '기초' : ratio < 0.75 ? '중급' : '고급';
   userLevel = level;
   try { localStorage.setItem('hg_level', level); } catch(e) {}
-  updateLevelUI();
-  updateDash(); // 대시보드 현재 수준 즉시 반영
- 
-  const emoji = { '입문':'🌱', '기초':'🌿', '중급':'🌳', '고급':'🌲' };
+  updateLevelUI(); updateDash();
+  const emoji = { '입문':'🌱','기초':'🌿','중급':'🌳','고급':'🌲' };
   document.getElementById('eval-screen').style.display = 'none';
   document.getElementById('evalBanner').style.display  = 'none';
   document.getElementById('learn-main').style.display  = 'block';
   showToast(`수준 평가 완료! ${emoji[level]} ${level}로 설정됐어요`);
 }
- 
 function updateLevelUI() {
-  const emoji = { '입문':'🌱', '기초':'🌿', '중급':'🌳', '고급':'🌲' };
-  document.getElementById('levelChip').textContent = `${emoji[userLevel]} ${userLevel}`;
+  const emoji = { '입문':'🌱','기초':'🌿','중급':'🌳','고급':'🌲' };
+  const chip = document.getElementById('levelChip');
+  if (chip) chip.textContent = `${emoji[userLevel]} ${userLevel}`;
   updateChatLabels();
 }
  
-/* ── 멘토 화면 전환 ── */
-function toggleMentorView() {
-  isMentorView = !isMentorView;
-  const btn = document.getElementById('mentorToggleBtn');
- 
-  if (isMentorView) {
-    btn.textContent = '👨‍🎓 멘토 화면';
-    document.getElementById('tab-dash').innerHTML = buildMentorDash();
-  } else {
-    btn.textContent = '🎓 멘토 보기';
-    updateDash();
-  }
+/* ════════════════════
+   학생 대시보드
+════════════════════ */
+function updateDash() {
+  const emoji = { '입문':'🌱','기초':'🌿','중급':'🌳','고급':'🌲' };
+  const sl = document.getElementById('statLearned');
+  const sr = document.getElementById('statRate');
+  const sv = document.getElementById('statLevelVal');
+  const su = document.getElementById('statLevelUnit');
+  if (sl) sl.textContent = learned;
+  if (sr) sr.textContent = totalQ > 0 ? Math.round(correctQ/totalQ*100) : '—';
+  if (sv) sv.textContent = emoji[userLevel] || '🌿';
+  if (su) su.textContent = userLevel;
 }
  
-function buildMentorDash() {
-  return `
+/* ════════════════════
+   매칭 탭 전환
+════════════════════ */
+function switchMatchTab(tab, el) {
+  document.querySelectorAll('.match-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mt-peer').style.display   = tab === 'peer'   ? 'block' : 'none';
+  document.getElementById('mt-mentor').style.display = tab === 'mentor' ? 'block' : 'none';
+}
+ 
+/* ════════════════════
+   멘토 화면
+════════════════════ */
+// 멘토 탭 전환
+function switchMentorTab(tab, el) {
+  document.querySelectorAll('#mentor-app .mentor-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#mentor-app .mentor-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mentor-tab-' + tab).classList.add('active');
+  if (tab === 'dash') renderMentorDash();
+  if (tab === 'task') renderMentorTask();
+  if (tab === 'request') renderMentorRequest();
+}
+ 
+const MENTEES = [
+  { name:'응우옌 민', level:'🌱 입문', lang:'🇻🇳 베트남어', type:'중도입국', learned:2, rate:42, streak:1, lastActive:'3일 전', status:'warn', task:'미제출' },
+  { name:'왕 샤오밍', level:'🌿 기초', lang:'🇨🇳 중국어',   type:'외국인가정', learned:12, rate:68, streak:4, lastActive:'오늘',   status:'ok',   task:'제출완료' },
+  { name:'김서연',    level:'🌳 중급', lang:'🇻🇳 베트남어', type:'국내출생',  learned:18, rate:81, streak:7, lastActive:'어제',   status:'good', task:'제출완료' },
+];
+ 
+function renderMentorDash() {
+  const el = document.getElementById('mentor-tab-dash');
+  const avgRate = Math.round(MENTEES.reduce((s,m)=>s+m.rate,0)/MENTEES.length);
+  el.innerHTML = `
     <div class="dash-title">멘토 대시보드</div>
-    <div class="mentor-summary">
-      <div class="stat-card"><div class="stat-label">담당 학생</div><div class="stat-value">3</div><div class="stat-unit">명</div></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">담당 멘티</div><div class="stat-value">${MENTEES.length}</div><div class="stat-unit">명</div></div>
+      <div class="stat-card"><div class="stat-label">평균 정답률</div><div class="stat-value">${avgRate}</div><div class="stat-unit">%</div></div>
       <div class="stat-card"><div class="stat-label">이번 주 활성</div><div class="stat-value">2</div><div class="stat-unit">명</div></div>
-      <div class="stat-card"><div class="stat-label">평균 정답률</div><div class="stat-value">61</div><div class="stat-unit">%</div></div>
       <div class="stat-card accent"><div class="stat-label">미제출 과제</div><div class="stat-value">1</div><div class="stat-unit">건</div></div>
     </div>
-    <div class="section-label">담당 학생 현황</div>
-    <div class="mentor-student-list">
-      <div class="mentor-student-card alert">
-        <div class="ms-avatar">👧</div>
+    <div class="section-label">멘티 현황</div>
+    ${MENTEES.map(m => `
+      <div class="mentor-student-card ${m.status==='warn'?'alert':''}">
+        <div class="ms-avatar">${m.type==='중도입국'?'👧':m.type==='외국인가정'?'👦':'👩'}</div>
         <div class="ms-info">
-          <div class="ms-name">응우옌 민 <span class="ms-tag">🌱 입문</span></div>
-          <div class="ms-detail">중도입국 · 🇻🇳 베트남어</div>
-          <div class="ms-status warn">⚠️ 3일째 미학습</div>
+          <div class="ms-name">${m.name} <span class="ms-tag">${m.level}</span></div>
+          <div class="ms-detail">${m.type} · ${m.lang} · 마지막 학습: ${m.lastActive}</div>
+          <div class="ms-sub-row">
+            <span class="ms-pill">학습 ${m.learned}회</span>
+            <span class="ms-pill">연속 ${m.streak}일</span>
+            <span class="ms-pill ${m.task==='미제출'?'red':'green'}">과제 ${m.task}</span>
+          </div>
         </div>
-        <div class="ms-rate red">42%</div>
-      </div>
-      <div class="mentor-student-card">
-        <div class="ms-avatar">👦</div>
-        <div class="ms-info">
-          <div class="ms-name">왕 샤오밍 <span class="ms-tag">🌿 기초</span></div>
-          <div class="ms-detail">외국인가정 · 🇨🇳 중국어</div>
-          <div class="ms-status">오늘 학습 완료</div>
-        </div>
-        <div class="ms-rate orange">68%</div>
-      </div>
-      <div class="mentor-student-card">
-        <div class="ms-avatar">👩</div>
-        <div class="ms-info">
-          <div class="ms-name">김서연 <span class="ms-tag">🌳 중급</span></div>
-          <div class="ms-detail">국내출생 · 🇻🇳 베트남어</div>
-          <div class="ms-status good">✅ 우수 학습 중</div>
-        </div>
-        <div class="ms-rate green">81%</div>
-      </div>
-    </div>
+        <div class="ms-rate ${m.rate<50?'red':m.rate<70?'orange':'green'}">${m.rate}%</div>
+      </div>`).join('')}
     <div class="section-label">알림</div>
     <div class="mentor-alerts">
       <div class="alert-item red">🔴 응우옌 민 — 3일 이상 미학습</div>
@@ -447,26 +544,116 @@ function buildMentorDash() {
     </div>`;
 }
  
-/* ── 매칭 탭 전환 ── */
-function switchMatchTab(tab, el) {
-  document.querySelectorAll('.match-tab').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('mt-peer').style.display   = tab === 'peer'   ? 'block' : 'none';
-  document.getElementById('mt-mentor').style.display = tab === 'mentor' ? 'block' : 'none';
+function renderMentorTask() {
+  const el = document.getElementById('mentor-tab-task');
+  el.innerHTML = `
+    <div class="dash-title">과제 관리</div>
+    <div class="section-label">과제 부여하기</div>
+    <div class="task-form">
+      <div class="tf-row">
+        <label>대상 멘티</label>
+        <select id="taskTarget" class="tf-select">
+          <option>전체</option>
+          ${MENTEES.map(m=>`<option>${m.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="tf-row">
+        <label>과제 유형</label>
+        <select id="taskType" class="tf-select">
+          <option>어휘 학습</option>
+          <option>퀴즈</option>
+          <option>문장 만들기</option>
+          <option>자유 작성</option>
+        </select>
+      </div>
+      <div class="tf-row">
+        <label>내용</label>
+        <input id="taskContent" class="tf-input" placeholder="예: 학교생활 어휘 10개 학습하기"/>
+      </div>
+      <div class="tf-row">
+        <label>마감일</label>
+        <input id="taskDue" type="date" class="tf-input"/>
+      </div>
+      <button class="tf-submit" onclick="submitTask()">📝 과제 부여하기</button>
+    </div>
+    <div class="section-label">진행 중 과제</div>
+    <div id="taskList">
+      <div class="task-item">
+        <div class="task-icon">📝</div>
+        <div class="task-info"><div class="task-title">교실 표현 10개 학습하기</div><div class="task-mentor">대상: 응우옌 민 · D-2</div></div>
+        <div class="task-due red">미제출</div>
+      </div>
+      <div class="task-item done">
+        <div class="task-icon">✅</div>
+        <div class="task-info"><div class="task-title">받아쓰기 단어 퀴즈</div><div class="task-mentor">대상: 전체 · 완료</div></div>
+        <div class="task-done-badge">완료</div>
+      </div>
+    </div>`;
 }
  
-/* ── 대시보드 업데이트 ── */
-function updateDash() {
-  if (isMentorView) return;
-  const emoji = { '입문':'🌱', '기초':'🌿', '중급':'🌳', '고급':'🌲' };
-  document.getElementById('statLearned').textContent = learned;
-  document.getElementById('statRate').textContent =
-    totalQ > 0 ? Math.round(correctQ / totalQ * 100) : '—';
-  // 현재 수준 카드 반영
-  const levelVal = document.getElementById('statLevelVal');
-  const levelUnit = document.getElementById('statLevelUnit');
-  if (levelVal) levelVal.textContent = emoji[userLevel] || '🌿';
-  if (levelUnit) levelUnit.textContent = userLevel;
+function submitTask() {
+  const target  = document.getElementById('taskTarget').value;
+  const type    = document.getElementById('taskType').value;
+  const content = document.getElementById('taskContent').value.trim();
+  const due     = document.getElementById('taskDue').value;
+  if (!content) { showToast('과제 내용을 입력해주세요.'); return; }
+  const list = document.getElementById('taskList');
+  const d = document.createElement('div');
+  d.className = 'task-item';
+  d.innerHTML = `<div class="task-icon">📝</div><div class="task-info"><div class="task-title">[${type}] ${content}</div><div class="task-mentor">대상: ${target} · 마감: ${due||'미정'}</div></div><div class="task-due">대기</div>`;
+  list.prepend(d);
+  document.getElementById('taskContent').value = '';
+  showToast(`✅ ${target}에게 과제를 부여했어요!`);
+}
+ 
+function renderMentorRequest() {
+  const el = document.getElementById('mentor-tab-request');
+  el.innerHTML = `
+    <div class="dash-title">멘티 요청</div>
+    <div class="section-label">새 요청 (2건)</div>
+    <div class="mentor-student-card">
+      <div class="ms-avatar">👦</div>
+      <div class="ms-info">
+        <div class="ms-name">류 하오란 <span class="ms-tag">🌿 기초</span></div>
+        <div class="ms-detail">외국인가정 · 🇨🇳 중국어 · 안산시</div>
+        <div class="ms-sub-row"><span class="ms-pill">멘토링 요청</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="tf-submit" style="padding:6px 12px;font-size:12px;" onclick="acceptRequest(this,'류 하오란')">수락</button>
+        <button class="rv-clear-btn" style="padding:6px 12px;font-size:12px;margin:0;" onclick="rejectRequest(this)">거절</button>
+      </div>
+    </div>
+    <div class="mentor-student-card">
+      <div class="ms-avatar">👧</div>
+      <div class="ms-info">
+        <div class="ms-name">박민지 <span class="ms-tag">🌱 입문</span></div>
+        <div class="ms-detail">중도입국 · 🇵🇭 필리핀어 · 화성시</div>
+        <div class="ms-sub-row"><span class="ms-pill">멘토링 요청</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="tf-submit" style="padding:6px 12px;font-size:12px;" onclick="acceptRequest(this,'박민지')">수락</button>
+        <button class="rv-clear-btn" style="padding:6px 12px;font-size:12px;margin:0;" onclick="rejectRequest(this)">거절</button>
+      </div>
+    </div>
+    <div class="section-label">수락된 멘티</div>
+    ${MENTEES.map(m=>`
+      <div class="mentor-student-card">
+        <div class="ms-avatar">${m.type==='중도입국'?'👧':m.type==='외국인가정'?'👦':'👩'}</div>
+        <div class="ms-info">
+          <div class="ms-name">${m.name} <span class="ms-tag">${m.level}</span></div>
+          <div class="ms-detail">${m.type} · ${m.lang}</div>
+        </div>
+        <span style="font-size:12px;color:#2E7D5E;font-weight:600;">✅ 매칭 중</span>
+      </div>`).join('')}`;
+}
+ 
+function acceptRequest(btn, name) {
+  btn.closest('.mentor-student-card').innerHTML = `<div style="width:100%;text-align:center;padding:12px;color:#2E7D5E;font-weight:600;">✅ ${name} — 수락 완료!</div>`;
+  showToast(`${name}의 요청을 수락했어요!`);
+}
+function rejectRequest(btn) {
+  btn.closest('.mentor-student-card').style.opacity = '0.4';
+  showToast('요청을 거절했어요.');
 }
  
 /* ── 토스트 ── */
