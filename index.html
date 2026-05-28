@@ -56,6 +56,11 @@
     .peer-input:focus { border-color:#2E7D5E; }
     /* ── 기타 ── */
     .task-due.red { color:#E53E3E; font-weight:700; }
+    /* ── 수준 평가 배지 ── */
+    .eval-quiz-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:8px; background:#fff3cd; color:#856404; margin-bottom:8px; }
+    /* ── 과제 모달 ── */
+    #task-modal { display:none; }
+    #task-modal.open { display:flex !important; }
   </style>
 </head>
 <body>
@@ -257,21 +262,38 @@
         </div>
         <div class="section-label">멘토 과제</div>
         <div class="task-list">
-          <div class="task-item">
+          <div class="task-item" onclick="openTaskModal('교실 표현 10개 학습하기','어휘 학습','이준혁 선생님','D-2','교실에서 자주 쓰는 표현 10개를 학습하고 각각 예문을 만들어보세요.','pending')" style="cursor:pointer;">
             <div class="task-icon">📝</div>
             <div class="task-info">
               <div class="task-title">교실 표현 10개 학습하기</div>
               <div class="task-mentor">멘토: 이준혁 선생님</div>
             </div>
-            <div class="task-due">D-2</div>
+            <div class="task-due" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              <span style="color:#F4845F;font-weight:700;font-size:13px;">D-2</span>
+              <span style="font-size:10px;color:#aaa;">▶ 시작하기</span>
+            </div>
           </div>
-          <div class="task-item done">
+          <div class="task-item done" onclick="openTaskModal('받아쓰기 단어 퀴즈','퀴즈','이준혁 선생님','완료','지난주 배운 학교생활 어휘 10개를 받아쓰기 형식으로 풀어보세요.','done')" style="cursor:pointer;">
             <div class="task-icon">✅</div>
             <div class="task-info">
               <div class="task-title">받아쓰기 단어 퀴즈</div>
               <div class="task-mentor">완료 · 정답률 80%</div>
             </div>
             <div class="task-done-badge">완료</div>
+          </div>
+        </div>
+ 
+        <!-- 과제 모달 -->
+        <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:flex-end;justify-content:center;">
+          <div id="task-modal-box" style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px;box-shadow:0 -4px 24px rgba(0,0,0,.15);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <span id="task-modal-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;background:#f0f7f4;color:#2E7D5E;"></span>
+              <button onclick="closeTaskModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">✕</button>
+            </div>
+            <div id="task-modal-title" style="font-size:17px;font-weight:800;margin-bottom:6px;"></div>
+            <div id="task-modal-mentor" style="font-size:12px;color:#888;margin-bottom:12px;"></div>
+            <div id="task-modal-desc" style="font-size:13px;color:#444;line-height:1.6;background:#f8f8f8;border-radius:12px;padding:14px;margin-bottom:16px;"></div>
+            <div id="task-modal-action"></div>
           </div>
         </div>
       </section>
