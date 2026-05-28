@@ -207,26 +207,6 @@
           <div id="reviewContent"></div>
         </div>
  
-        <!-- 또래 채팅 화면 -->
-        <div id="mode-chat-peer" style="display:none">
-          <div class="screen-header">
-            <button class="back-btn" onclick="closePeerChat()">← 돌아가기</button>
-            <span class="screen-title" id="peerChatTitle">대화</span>
-          </div>
-          <div class="peer-chat-box">
-            <div class="peer-messages" id="peerMessages"></div>
-            <div class="peer-input-area">
-              <input type="text" class="peer-input" id="peerInput" placeholder="메시지를 입력하세요..."
-                onkeydown="if(event.key==='Enter'){sendPeerMsg()}"/>
-              <button class="send-btn" onclick="sendPeerMsg()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
- 
       </section>
  
       <!-- ══ 탭2: 내 현황 ══ -->
@@ -356,6 +336,27 @@
             </div>
           </div>
         </div>
+ 
+        <!-- 또래 채팅 화면 -->
+        <div id="peer-chat-screen" style="display:none">
+          <div class="screen-header">
+            <button class="back-btn" onclick="closePeerChat()">← 돌아가기</button>
+            <span class="screen-title" id="peerChatTitle">대화</span>
+          </div>
+          <div style="display:flex;flex-direction:column;height:calc(100vh - 230px);">
+            <div class="peer-messages" id="peerMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;"></div>
+            <div class="peer-input-area">
+              <input type="text" class="peer-input" id="peerInput" placeholder="메시지를 입력하세요..."
+                onkeydown="if(event.key==='Enter'){sendPeerMsg()}"/>
+              <button class="send-btn" onclick="sendPeerMsg()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+ 
       </section>
     </div>
  
