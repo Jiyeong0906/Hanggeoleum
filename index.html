@@ -1,102 +1,356 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>한걸음 — 한국어로 한 걸음씩</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div class="app">
-    <!-- 사이드바 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-ko">한걸음</span>
-          <span class="logo-sub">Korean Step by Step</span>
+
+<!-- ── 앱 메인 ── -->
+<div id="app" class="app">
+
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">한</div>
+      <div class="logo-info">
+        <span class="logo-name">한걸음</span>
+        <span class="logo-sub">한국어로 한 걸음씩</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="level-chip" id="levelChip">🌿 기초</div>
+    </div>
+  </header>
+
+  <!-- 콘텐츠 영역 -->
+  <main class="main" id="mainContent">
+
+    <!-- ══ 탭1: 학습 ══ -->
+    <section id="tab-learn" class="tab-panel active">
+
+      <!-- 수준 평가 배너 -->
+      <div class="eval-banner" id="evalBanner" onclick="startEval()">
+        <div class="eval-left">
+          <span class="eval-icon">📝</span>
+          <div>
+            <div class="eval-title">한국어 수준 평가 받기</div>
+            <div class="eval-sub">내 수준에 맞는 맞춤 학습을 시작하세요</div>
+          </div>
+        </div>
+        <span class="eval-arrow">›</span>
+      </div>
+
+      <!-- 수준 평가 화면 -->
+      <div id="eval-screen" style="display:none">
+        <div class="screen-header">
+          <button class="back-btn" onclick="closeEval()">← 돌아가기</button>
+          <span class="screen-title">한국어 수준 평가</span>
+        </div>
+        <div class="eval-card">
+          <div class="eval-progress">
+            <div class="eval-pbar"><div class="eval-pfill" id="evalPfill" style="width:0%"></div></div>
+            <span class="eval-ptxt" id="evalPtxt">1 / 8</span>
+          </div>
+          <div class="eval-q" id="evalQ"></div>
+          <div class="eval-opts" id="evalOpts"></div>
         </div>
       </div>
 
-      <nav class="level-nav">
-        <p class="nav-label">학습 단계</p>
-        <button class="level-btn active" data-level="beginner">
-          <span class="level-badge">초급</span>
-          <span class="level-name">Beginner</span>
-        </button>
-        <button class="level-btn" data-level="intermediate">
-          <span class="level-badge">중급</span>
-          <span class="level-name">Intermediate</span>
-        </button>
-        <button class="level-btn" data-level="advanced">
-          <span class="level-badge">고급</span>
-          <span class="level-name">Advanced</span>
-        </button>
-      </nav>
-
-      <nav class="topic-nav">
-        <p class="nav-label">학습 주제</p>
-        <button class="topic-btn active" data-topic="free">💬 자유 대화</button>
-        <button class="topic-btn" data-topic="grammar">📖 문법 설명</button>
-        <button class="topic-btn" data-topic="vocab">🔤 어휘 학습</button>
-        <button class="topic-btn" data-topic="pronunciation">🎵 발음 교정</button>
-        <button class="topic-btn" data-topic="culture">🏮 한국 문화</button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <p>경기도 다문화 학생을 위한<br/>AI 한국어 학습 플랫폼</p>
-      </div>
-    </aside>
-
-    <!-- 메인 채팅 영역 -->
-    <main class="chat-area">
-      <header class="chat-header">
-        <button class="menu-btn" id="menuBtn">☰</button>
-        <div class="header-info">
-          <h1 class="header-title">한걸음 선생님</h1>
-          <span class="header-status">
-            <span class="status-dot"></span>
-            온라인
-          </span>
+      <!-- 메인 학습 화면 -->
+      <div id="learn-main">
+        <div class="ai-status">
+          <span class="ai-dot"></span>
+          AI 선생님 연결됨
         </div>
-        <button class="clear-btn" id="clearBtn" title="대화 초기화">↺</button>
-      </header>
 
-      <div class="messages" id="messages">
-        <div class="welcome-card">
-          <div class="welcome-emoji">👋</div>
-          <h2>안녕하세요! Hello!</h2>
-          <p>저는 한걸음 AI 선생님이에요.<br/>한국어를 함께 배워요!</p>
-          <p class="welcome-sub">I'm your Korean language AI teacher.<br/>Let's learn Korean together, step by step!</p>
-          <div class="quick-starts">
-            <button class="quick-btn" onclick="sendQuick('안녕하세요! 저는 한국어를 배우고 싶어요.')">👋 인사하기</button>
-            <button class="quick-btn" onclick="sendQuick('한국어 기초 문법을 알려주세요.')">📖 기초 문법</button>
-            <button class="quick-btn" onclick="sendQuick('자기소개하는 방법을 알려주세요.')">🙋 자기소개</button>
-            <button class="quick-btn" onclick="sendQuick('한국 문화에 대해 알려주세요.')">🏮 한국 문화</button>
+        <div class="section-label">모국어 선택</div>
+        <div class="lang-grid">
+          <button class="lang-card" data-lang="vi" onclick="selectLang(this,'vi','베트남어','🇻🇳','Tiếng Việt')">
+            <span class="lang-flag">🇻🇳</span>
+            <span class="lang-name">베트남어</span>
+            <span class="lang-native">Tiếng Việt</span>
+          </button>
+          <button class="lang-card selected" data-lang="zh" onclick="selectLang(this,'zh','중국어','🇨🇳','中文')">
+            <span class="lang-flag">🇨🇳</span>
+            <span class="lang-name">중국어</span>
+            <span class="lang-native">中文</span>
+          </button>
+          <button class="lang-card" data-lang="tl" onclick="selectLang(this,'tl','필리핀어','🇵🇭','Filipino')">
+            <span class="lang-flag">🇵🇭</span>
+            <span class="lang-name">필리핀어</span>
+            <span class="lang-native">Filipino</span>
+          </button>
+        </div>
+
+        <div class="section-label">학습 카테고리</div>
+        <div class="cat-grid">
+          <button class="cat-card selected" data-cat="school" onclick="selectCat(this,'school','학교생활')">
+            <span class="cat-icon">🏫</span>
+            <span class="cat-name">학교생활 어휘</span>
+            <span class="cat-desc">교실·급식·체육 표현</span>
+          </button>
+          <button class="cat-card" data-cat="subject" onclick="selectCat(this,'subject','교과')">
+            <span class="cat-icon">📖</span>
+            <span class="cat-name">교과 어휘</span>
+            <span class="cat-desc">국어·수학·과학·사회</span>
+          </button>
+        </div>
+
+        <div class="section-label">학습 모드</div>
+        <div class="mode-row">
+          <button class="mode-btn" onclick="showMode('chat')">
+            <span class="mode-icon">💬</span>
+            <span>AI 챗봇</span>
+          </button>
+          <button class="mode-btn" onclick="showMode('quiz')">
+            <span class="mode-icon">🎯</span>
+            <span>퀴즈</span>
+          </button>
+          <button class="mode-btn" onclick="showMode('review')">
+            <span class="mode-icon">🔄</span>
+            <span>복습</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 챗봇 화면 -->
+      <div id="mode-chat" style="display:none">
+        <div class="screen-header">
+          <button class="back-btn" onclick="showMode(null)">← 돌아가기</button>
+          <span class="screen-title" id="chatTitle">🇨🇳 중국어 · 학교생활</span>
+        </div>
+        <div class="chat-box">
+          <div class="chat-header">
+            <div class="chat-avatar">🤖</div>
+            <div class="chat-info">
+              <div class="chat-name">한걸음 AI 선생님</div>
+              <div class="chat-sub" id="chatSub">기초 수준 · 중국어 설명</div>
+            </div>
+            <div class="chat-model-badge">GPT-4o mini</div>
+          </div>
+          <div class="messages" id="messages"></div>
+          <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatInput"
+              placeholder="모르는 단어를 입력하세요..."
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"/>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="quick-chips" id="quickChips"></div>
+      </div>
+
+      <!-- 퀴즈 화면 -->
+      <div id="mode-quiz" style="display:none">
+        <div class="screen-header">
+          <button class="back-btn" onclick="showMode(null)">← 돌아가기</button>
+          <span class="screen-title">🎯 어휘 퀴즈</span>
+        </div>
+        <div class="quiz-card">
+          <div class="quiz-progress">
+            <div class="q-pbar"><div class="q-pfill" id="qPfill" style="width:20%"></div></div>
+            <span class="q-ptxt" id="qPtxt">1 / 5</span>
+          </div>
+          <div class="quiz-q" id="quizQ"></div>
+          <div class="quiz-hint" id="quizHint"></div>
+          <div class="quiz-options" id="quizOptions"></div>
+          <div class="quiz-result" id="quizResult"></div>
+          <button class="next-btn" id="nextBtn" onclick="nextQuiz()" style="display:none">다음 문제 →</button>
+        </div>
+      </div>
+
+      <!-- 복습 화면 -->
+      <div id="mode-review" style="display:none">
+        <div class="screen-header">
+          <button class="back-btn" onclick="showMode(null)">← 돌아가기</button>
+          <span class="screen-title">🔄 복습 목록</span>
+        </div>
+        <div id="reviewContent"></div>
+      </div>
+
+    </section>
+
+    <!-- ══ 탭2: 내 현황 ══ -->
+    <section id="tab-dash" class="tab-panel">
+      <div class="dash-title">내 학습 현황</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">이번 주 학습</div>
+          <div class="stat-value" id="statLearned">0</div>
+          <div class="stat-unit">번</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">퀴즈 정답률</div>
+          <div class="stat-value" id="statRate">—</div>
+          <div class="stat-unit">%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">연속 학습일</div>
+          <div class="stat-value">5</div>
+          <div class="stat-unit">일 🔥</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-label">현재 수준</div>
+          <div class="stat-value level-text">🌿</div>
+          <div class="stat-unit">기초</div>
+        </div>
+      </div>
+      <div class="section-label">중급까지의 여정</div>
+      <div class="level-progress-card">
+        <div class="level-row">
+          <span class="level-tag active">🌱 입문</span>
+          <span class="level-tag active">🌿 기초</span>
+          <span class="level-tag">🌳 중급</span>
+          <span class="level-tag">🌲 고급</span>
+        </div>
+        <div class="level-bar-wrap">
+          <div class="level-bar"><div class="level-fill" style="width:60%"></div></div>
+          <span class="level-pct">60%</span>
+        </div>
+        <p class="level-hint">85% 이상 2주 연속 달성 시 중급으로 올라가요!</p>
+      </div>
+      <div class="section-label">취약 카테고리</div>
+      <div class="weak-card">
+        <div class="weak-row">
+          <span class="weak-name">과학 어휘</span>
+          <span class="weak-pct red">38%</span>
+        </div>
+        <div class="weak-bar"><div class="weak-fill" style="width:38%;background:#E53E3E"></div></div>
+        <div class="weak-row" style="margin-top:12px">
+          <span class="weak-name">사회 어휘</span>
+          <span class="weak-pct orange">52%</span>
+        </div>
+        <div class="weak-bar"><div class="weak-fill" style="width:52%;background:#F4845F"></div></div>
+      </div>
+      <div class="section-label">멘토 과제</div>
+      <div class="task-list">
+        <div class="task-item">
+          <div class="task-icon">📝</div>
+          <div class="task-info">
+            <div class="task-title">교실 표현 10개 학습하기</div>
+            <div class="task-mentor">멘토: 이준혁 선생님</div>
+          </div>
+          <div class="task-due">D-2</div>
+        </div>
+        <div class="task-item done">
+          <div class="task-icon">✅</div>
+          <div class="task-info">
+            <div class="task-title">받아쓰기 단어 퀴즈</div>
+            <div class="task-mentor">완료 · 정답률 80%</div>
+          </div>
+          <div class="task-done-badge">완료</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 탭3: 또래·멘토 ══ -->
+    <section id="tab-match" class="tab-panel">
+      <div class="match-tabs">
+        <button class="match-tab active" onclick="switchMatchTab('peer',this)">👫 또래 찾기</button>
+        <button class="match-tab" onclick="switchMatchTab('mentor',this)">🎓 멘토 찾기</button>
+      </div>
+      <div id="mt-peer">
+        <p class="match-desc">📍 비슷한 수준의 친구를 찾았어요!</p>
+        <div class="match-card">
+          <div class="match-avatar">👧</div>
+          <div class="match-info">
+            <div class="match-name">왕 샤오밍</div>
+            <div class="match-detail">초등 4학년 · 수원시 · 🇨🇳</div>
+            <div class="match-tags">
+              <span class="mtag">🌿 기초</span>
+              <span class="mtag">학교생활</span>
+            </div>
+          </div>
+          <div class="match-right">
+            <div class="match-score">96점</div>
+            <button class="match-req-btn" onclick="showToast('매칭 요청을 보냈어요!')">요청</button>
+          </div>
+        </div>
+        <div class="match-card">
+          <div class="match-avatar">👦</div>
+          <div class="match-info">
+            <div class="match-name">류 하오란</div>
+            <div class="match-detail">초등 5학년 · 안산시 · 🇨🇳</div>
+            <div class="match-tags">
+              <span class="mtag">🌿 기초</span>
+              <span class="mtag">교과 어휘</span>
+            </div>
+          </div>
+          <div class="match-right">
+            <div class="match-score">88점</div>
+            <button class="match-req-btn" onclick="showToast('매칭 요청을 보냈어요!')">요청</button>
           </div>
         </div>
       </div>
-
-      <div class="input-area">
-        <div class="input-wrapper">
-          <textarea
-            id="userInput"
-            placeholder="한국어로 말해보세요... / Type in any language!"
-            rows="1"
-          ></textarea>
-          <button class="send-btn" id="sendBtn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+      <div id="mt-mentor" style="display:none">
+        <p class="match-desc">🎓 나를 도와줄 멘토를 찾아보세요!</p>
+        <div class="match-card">
+          <div class="match-avatar">👨‍🎓</div>
+          <div class="match-info">
+            <div class="match-name">이준혁</div>
+            <div class="match-detail">대학교 3학년 · 경기도 · 🇰🇷</div>
+            <div class="match-tags">
+              <span class="mtag">🌲 고급</span>
+              <span class="mtag">🇨🇳 중국어</span>
+              <span class="mtag">멘티 2명</span>
+            </div>
+          </div>
+          <div class="match-right">
+            <div class="match-score">⭐ 4.9</div>
+            <button class="match-req-btn" onclick="showToast('멘토 매칭 요청을 보냈어요!')">요청</button>
+          </div>
         </div>
-        <p class="input-hint">Enter로 전송 / Shift+Enter로 줄바꿈</p>
+        <div class="match-card">
+          <div class="match-avatar">👩‍🎓</div>
+          <div class="match-info">
+            <div class="match-name">박지현</div>
+            <div class="match-detail">대학원생 · 수원시 · 🇰🇷</div>
+            <div class="match-tags">
+              <span class="mtag">🌲 고급</span>
+              <span class="mtag">🇻🇳 베트남어</span>
+              <span class="mtag">멘티 1명</span>
+            </div>
+          </div>
+          <div class="match-right">
+            <div class="match-score">⭐ 4.7</div>
+            <button class="match-req-btn" onclick="showToast('멘토 매칭 요청을 보냈어요!')">요청</button>
+          </div>
+        </div>
       </div>
-    </main>
-  </div>
+    </section>
 
-  <script src="app.js"></script>
+  </main>
+
+  <!-- 하단 탭바 -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('learn',this)">
+      <span class="tab-icon">📚</span>
+      <span class="tab-label">학습</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('dash',this)">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">내 현황</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('match',this)">
+      <span class="tab-icon">🤝</span>
+      <span class="tab-label">또래·멘토</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
