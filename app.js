@@ -15,7 +15,28 @@ let evalIdx = 0, evalScore = 0;
 let activeChatPeer = null; // 현재 열린 대화 상대
  
 /* ── 부정적 언어 필터 ── */
-const BAD_WORDS = ['씨발','개새끼','병신','바보','멍청','죽어','지랄','fuck','shit','bitch','damn','asshole','stupid','idiot'];
+const BAD_WORDS = [
+  // 강한 욕설
+  '씨발','시발','씹할','씹팔','씨팔','씨빨','ㅅㅂ','ㅄ','ㅂㅅ',
+  '개새끼','개새','개놈','개년','씹새끼','씹년','씹놈',
+  '병신','븅신','등신','좆','좃','좆까','좆같','좆나','좆밥',
+  '존나','존내','존나게','염병','지랄','지랄하네','개지랄',
+  '닥쳐','꺼져','뒤져','죽어','뒈져','뒈져라','쳐죽',
+  '미친놈','미친년','또라이','정신병자','정신나간',
+  '걸레','창녀','보지','자지','후장','따먹','강간',
+   
+  // 비하/모욕
+  '멍청','멍청이','한심','호구','찐따','루저','쓰레기','폐급','노답','답없',
+  '재수없','싸가지','양심없','이상한놈','이상한년','얼간이','등신','모지리','찌질',
+  '한남','한녀','찐','관종','급식','잼민','틀딱','꼰대',
+   
+  // 영어 욕설
+  'fuck','fucking','shit','bullshit','bitch','damn','asshole','bastard',
+  'motherfucker','wtf','suck','jerk','loser','trash','garbage',
+  'bitch','son of bitch','asshole','bastard',
+  'dick','pussy','slut','whore','retard',
+  'suck my dick','go to hell','piece of shit'
+];
 function containsBadWord(t) { const l=t.toLowerCase(); return BAD_WORDS.some(w=>l.includes(w)); }
  
 /* ── 퀴즈 데이터 (언어별 번역 포함) ── */
@@ -712,6 +733,9 @@ function showToast(msg) {
 /* ════════════════════
    과제 모달
 ════════════════════ */
+/* 제출 완료된 과제 목록 */
+const submittedTasks = new Set();
+ 
 function openTaskModal(title, type, mentor, due, desc, status) {
   const modal = document.getElementById('task-modal');
   document.getElementById('task-modal-badge').textContent = type;
@@ -720,38 +744,135 @@ function openTaskModal(title, type, mentor, due, desc, status) {
   document.getElementById('task-modal-desc').textContent = desc;
  
   const actionEl = document.getElementById('task-modal-action');
-  if (status === 'done') {
-    actionEl.innerHTML = `<div style="text-align:center;padding:12px;color:#2E7D5E;font-weight:700;font-size:14px;">✅ 이미 완료한 과제예요!</div>`;
-  } else {
-    // 과제 유형에 따라 다른 액션 버튼
-    let actionBtn = '';
-    if (type === '어휘 학습') {
-      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();switchTab('learn',document.querySelectorAll('#student-app .tab-btn')[0]);showMode('chat')">
-        💬 AI 챗봇으로 학습 시작하기
-      </button>`;
-    } else if (type === '퀴즈') {
-      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();switchTab('learn',document.querySelectorAll('#student-app .tab-btn')[0]);showMode('quiz')">
-        🎯 퀴즈 풀러 가기
-      </button>`;
-    } else {
-      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();showToast('과제를 시작했어요!')">
-        ▶ 과제 시작하기
-      </button>`;
-    }
-    actionEl.innerHTML = actionBtn + `
-      <button onclick="submitStudentTask('${title}')" style="width:100%;margin-top:8px;padding:12px;background:#f0f0f0;color:#555;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;border:none;border-radius:12px;cursor:pointer;">
-        📤 과제 제출하기
-      </button>`;
+ 
+  // 이미 제출했거나 완료된 과제
+  if (status === 'done' || submittedTasks.has(title)) {
+    actionEl.innerHTML = `
+      <div style="text-align:center;padding:16px;background:#f0f7f4;border-radius:12px;">
+        <div style="font-size:28px;margin-bottom:8px;">✅</div>
+        <div style="color:#2E7D5E;font-weight:700;font-size:14px;">완료된 과제예요!</div>
+        <div style="color:#888;font-size:12px;margin-top:4px;">멘토가 피드백을 확인 중이에요.</div>
+      </div>`;
+    modal.classList.add('open');
+    return;
   }
  
+  // 미완료 과제 — 유형별 작성 화면 표시
+  actionEl.innerHTML = buildTaskSubmitForm(title, type);
   modal.classList.add('open');
+}
+ 
+function buildTaskSubmitForm(title, type) {
+  if (type === '어휘 학습') {
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">📝 학습한 어휘와 예문을 작성해주세요</div>
+        <div id="vocab-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+          <div class="vocab-row" style="display:flex;gap:6px;">
+            <input class="tf-input vocab-word" placeholder="어휘" style="width:35%;font-size:12px;padding:8px;"/>
+            <input class="tf-input vocab-ex" placeholder="예문을 만들어보세요" style="flex:1;font-size:12px;padding:8px;"/>
+          </div>
+          <div class="vocab-row" style="display:flex;gap:6px;">
+            <input class="tf-input vocab-word" placeholder="어휘" style="width:35%;font-size:12px;padding:8px;"/>
+            <input class="tf-input vocab-ex" placeholder="예문을 만들어보세요" style="flex:1;font-size:12px;padding:8px;"/>
+          </div>
+          <div class="vocab-row" style="display:flex;gap:6px;">
+            <input class="tf-input vocab-word" placeholder="어휘" style="width:35%;font-size:12px;padding:8px;"/>
+            <input class="tf-input vocab-ex" placeholder="예문을 만들어보세요" style="flex:1;font-size:12px;padding:8px;"/>
+          </div>
+        </div>
+        <button onclick="addVocabRow()" style="width:100%;padding:8px;background:#f5f5f5;border:1.5px dashed #ccc;border-radius:10px;color:#888;font-size:12px;cursor:pointer;">+ 어휘 추가</button>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">💬 학습 후 느낀 점 (선택)</div>
+        <textarea id="task-comment" class="tf-input" rows="2" placeholder="어렵거나 궁금한 점을 멘토에게 남겨보세요" style="width:100%;resize:none;font-size:12px;"></textarea>
+      </div>
+      <button class="tf-submit" onclick="submitTaskForm('${title}','어휘 학습')">📤 과제 제출하기</button>`;
+ 
+  } else if (type === '퀴즈') {
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">🎯 퀴즈를 먼저 풀고 결과를 제출해주세요</div>
+        <button class="tf-submit" style="margin-bottom:8px;" onclick="closeTaskModal();switchTab('learn',document.querySelectorAll('#student-app .tab-btn')[0]);showMode('quiz')">
+          🎯 퀴즈 풀러 가기
+        </button>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">📊 퀴즈 결과 입력</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">총 문제 수</div>
+            <input id="quiz-total" type="number" class="tf-input" value="5" min="1" style="width:100%;font-size:13px;padding:8px;"/>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">맞힌 문제 수</div>
+            <input id="quiz-correct" type="number" class="tf-input" value="" min="0" placeholder="0" style="width:100%;font-size:13px;padding:8px;"/>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">💬 어려웠던 문제나 느낀 점 (선택)</div>
+        <textarea id="task-comment" class="tf-input" rows="2" placeholder="멘토에게 남기고 싶은 말을 적어보세요" style="width:100%;resize:none;font-size:12px;"></textarea>
+      </div>
+      <button class="tf-submit" onclick="submitTaskForm('${title}','퀴즈')">📤 결과 제출하기</button>`;
+ 
+  } else {
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">✍️ 과제 내용을 작성해주세요</div>
+        <textarea id="task-content" class="tf-input" rows="5" placeholder="여기에 과제 내용을 작성하세요..." style="width:100%;resize:none;font-size:13px;line-height:1.6;"></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">💬 멘토에게 남기는 말 (선택)</div>
+        <textarea id="task-comment" class="tf-input" rows="2" placeholder="궁금한 점이나 어려웠던 부분을 남겨보세요" style="width:100%;resize:none;font-size:12px;"></textarea>
+      </div>
+      <button class="tf-submit" onclick="submitTaskForm('${title}','자유')">📤 과제 제출하기</button>`;
+  }
+}
+ 
+function addVocabRow() {
+  const list = document.getElementById('vocab-list');
+  const row = document.createElement('div');
+  row.className = 'vocab-row';
+  row.style.cssText = 'display:flex;gap:6px;';
+  row.innerHTML = `
+    <input class="tf-input vocab-word" placeholder="어휘" style="width:35%;font-size:12px;padding:8px;"/>
+    <input class="tf-input vocab-ex" placeholder="예문을 만들어보세요" style="flex:1;font-size:12px;padding:8px;"/>`;
+  list.appendChild(row);
+}
+ 
+function submitTaskForm(title, type) {
+  // 유형별 유효성 검사
+  if (type === '어휘 학습') {
+    const words = document.querySelectorAll('.vocab-word');
+    const filled = Array.from(words).filter(w => w.value.trim() !== '');
+    if (filled.length === 0) { showToast('최소 1개 이상 어휘를 입력해주세요!'); return; }
+  } else if (type === '퀴즈') {
+    const correct = document.getElementById('quiz-correct').value;
+    if (correct === '' || correct === null) { showToast('맞힌 문제 수를 입력해주세요!'); return; }
+  } else {
+    const content = document.getElementById('task-content');
+    if (content && content.value.trim() === '') { showToast('과제 내용을 작성해주세요!'); return; }
+  }
+ 
+  // 제출 완료 처리
+  submittedTasks.add(title);
+  closeTaskModal();
+  showToast(`"${title}" 과제를 제출했어요! 🎉`);
+ 
+  // 해당 과제 항목 UI 업데이트
+  const taskItems = document.querySelectorAll('.task-item');
+  taskItems.forEach(item => {
+    const titleEl = item.querySelector('.task-title');
+    if (titleEl && titleEl.textContent === title) {
+      item.classList.add('done');
+      item.querySelector('.task-icon').textContent = '✅';
+      const dueEl = item.querySelector('.task-due');
+      if (dueEl) dueEl.outerHTML = '<div class="task-done-badge">완료</div>';
+      const mentorEl = item.querySelector('.task-mentor');
+      if (mentorEl) mentorEl.textContent = '완료 · 멘토 피드백 대기 중';
+      // 클릭 이벤트 업데이트
+      item.setAttribute('onclick', `openTaskModal('${title}','','','','','done')`);
+    }
+  });
 }
  
 function closeTaskModal() {
   document.getElementById('task-modal').classList.remove('open');
-}
- 
-function submitStudentTask(title) {
-  closeTaskModal();
-  showToast(`"${title}" 과제를 제출했어요! 🎉`);
 }
