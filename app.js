@@ -15,27 +15,7 @@ let evalIdx = 0, evalScore = 0;
 let activeChatPeer = null; // 현재 열린 대화 상대
  
 /* ── 부정적 언어 필터 ── */
-const BAD_WORDS = [
-  // 강한 욕설
-  '씨발','시발','씹할','씹팔','씨팔','씨빨','ㅅㅂ','ㅄ','ㅂㅅ',
-  '개새끼','개새','개놈','개년','씹새끼','씹년','씹놈',
-  '병신','븅신','등신','좆','좃','좆까','좆같','좆나','좆밥',
-  '존나','존내','존나게','염병','지랄','지랄하네','개지랄',
-  '닥쳐','꺼져','뒤져','죽어','뒈져','뒈져라','쳐죽',
-  '미친놈','미친년','또라이',
-   
-  // 비하/모욕
-  '멍청','멍청이','한심','호구','찐따','루저','쓰레기','폐급','노답','답없',
-  '재수없','싸가지','양심없','이상한놈','이상한년','얼간이','등신','모지리','찌질',
-  '한남','한녀','찐','관종','급식','잼민','틀딱','꼰대',
-   
-  // 영어 욕설
-  'fuck','fucking','shit','bullshit','bitch','damn','asshole','bastard',
-  'motherfucker','wtf','suck','jerk','loser','trash','garbage',
-  'bitch','son of bitch','asshole','bastard',
-  'dick','pussy','slut','whore','retard',
-  'suck my dick','go to hell','piece of shit'
-];
+const BAD_WORDS = ['씨발','개새끼','병신','바보','멍청','죽어','지랄','fuck','shit','bitch','damn','asshole','stupid','idiot'];
 function containsBadWord(t) { const l=t.toLowerCase(); return BAD_WORDS.some(w=>l.includes(w)); }
  
 /* ── 퀴즈 데이터 (언어별 번역 포함) ── */
@@ -132,6 +112,8 @@ async function callAI(userMessage) {
 /* ════════════════════
    화면 전환 (학생 ↔ 멘토)
 ════════════════════ */
+let studentLevelBackup = null;
+ 
 function switchViewMode(mode) {
   viewMode = mode;
   const studentView = document.getElementById('student-app');
@@ -140,15 +122,24 @@ function switchViewMode(mode) {
   const btnMentor   = document.getElementById('btnMentor');
  
   if (mode === 'student') {
+    if (studentLevelBackup !== null) {
+      userLevel = studentLevelBackup;
+      studentLevelBackup = null;
+    }
     studentView.style.display = 'flex';
     mentorView.style.display  = 'none';
     btnStudent.classList.add('active');
     btnMentor.classList.remove('active');
+    updateLevelUI();
+    updateDash();
   } else {
+    studentLevelBackup = userLevel;
+    userLevel = '고급';
     studentView.style.display = 'none';
     mentorView.style.display  = 'flex';
     btnStudent.classList.remove('active');
     btnMentor.classList.add('active');
+    updateLevelUI();
     renderMentorDash();
   }
 }
