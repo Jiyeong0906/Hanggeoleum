@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한걸음 — 한국어로 한 걸음씩</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- 사이드바 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-ko">한걸음</span>
+          <span class="logo-sub">Korean Step by Step</span>
+        </div>
+      </div>
+
+      <nav class="level-nav">
+        <p class="nav-label">학습 단계</p>
+        <button class="level-btn active" data-level="beginner">
+          <span class="level-badge">초급</span>
+          <span class="level-name">Beginner</span>
+        </button>
+        <button class="level-btn" data-level="intermediate">
+          <span class="level-badge">중급</span>
+          <span class="level-name">Intermediate</span>
+        </button>
+        <button class="level-btn" data-level="advanced">
+          <span class="level-badge">고급</span>
+          <span class="level-name">Advanced</span>
+        </button>
+      </nav>
+
+      <nav class="topic-nav">
+        <p class="nav-label">학습 주제</p>
+        <button class="topic-btn active" data-topic="free">💬 자유 대화</button>
+        <button class="topic-btn" data-topic="grammar">📖 문법 설명</button>
+        <button class="topic-btn" data-topic="vocab">🔤 어휘 학습</button>
+        <button class="topic-btn" data-topic="pronunciation">🎵 발음 교정</button>
+        <button class="topic-btn" data-topic="culture">🏮 한국 문화</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>경기도 다문화 학생을 위한<br/>AI 한국어 학습 플랫폼</p>
+      </div>
+    </aside>
+
+    <!-- 메인 채팅 영역 -->
+    <main class="chat-area">
+      <header class="chat-header">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="header-info">
+          <h1 class="header-title">한걸음 선생님</h1>
+          <span class="header-status">
+            <span class="status-dot"></span>
+            온라인
+          </span>
+        </div>
+        <button class="clear-btn" id="clearBtn" title="대화 초기화">↺</button>
+      </header>
+
+      <div class="messages" id="messages">
+        <div class="welcome-card">
+          <div class="welcome-emoji">👋</div>
+          <h2>안녕하세요! Hello!</h2>
+          <p>저는 한걸음 AI 선생님이에요.<br/>한국어를 함께 배워요!</p>
+          <p class="welcome-sub">I'm your Korean language AI teacher.<br/>Let's learn Korean together, step by step!</p>
+          <div class="quick-starts">
+            <button class="quick-btn" onclick="sendQuick('안녕하세요! 저는 한국어를 배우고 싶어요.')">👋 인사하기</button>
+            <button class="quick-btn" onclick="sendQuick('한국어 기초 문법을 알려주세요.')">📖 기초 문법</button>
+            <button class="quick-btn" onclick="sendQuick('자기소개하는 방법을 알려주세요.')">🙋 자기소개</button>
+            <button class="quick-btn" onclick="sendQuick('한국 문화에 대해 알려주세요.')">🏮 한국 문화</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+            id="userInput"
+            placeholder="한국어로 말해보세요... / Type in any language!"
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <p class="input-hint">Enter로 전송 / Shift+Enter로 줄바꿈</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
