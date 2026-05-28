@@ -8,12 +8,59 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ── 멘토 버튼 ── */
+    .mentor-toggle-btn {
+      font-size: 11px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 20px;
+      border: 1.5px solid var(--primary, #2E7D5E);
+      background: transparent;
+      color: var(--primary, #2E7D5E);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .mentor-toggle-btn.active {
+      background: var(--primary, #2E7D5E);
+      color: #fff;
+    }
+    /* ── 멘토 대시보드 ── */
+    .mentor-student-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .mentor-student-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+    .mentor-student-card.alert { border-left: 4px solid #E53E3E; }
+    .ms-avatar { font-size: 28px; }
+    .ms-info { flex: 1; }
+    .ms-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .ms-tag { font-size: 11px; font-weight: 500; background: #f0f7f4; color: #2E7D5E; padding: 2px 7px; border-radius: 10px; margin-left: 4px; }
+    .ms-detail { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .ms-status { font-size: 11px; color: #555; }
+    .ms-status.warn { color: #E53E3E; }
+    .ms-status.good { color: #2E7D5E; }
+    .ms-rate { font-size: 18px; font-weight: 800; min-width: 40px; text-align: right; }
+    .ms-rate.red { color: #E53E3E; }
+    .ms-rate.orange { color: #F4845F; }
+    .ms-rate.green { color: #2E7D5E; }
+    .mentor-alerts { display: flex; flex-direction: column; gap: 8px; }
+    .alert-item { font-size: 13px; padding: 10px 14px; border-radius: 10px; background: #f8f8f8; }
+    .alert-item.red { background: #fff5f5; }
+    .alert-item.orange { background: #fff8f0; }
+    .alert-item.green { background: #f0f7f4; }
+  </style>
 </head>
 <body>
-
-<!-- ── 앱 메인 ── -->
+ 
 <div id="app" class="app">
-
+ 
   <!-- 헤더 -->
   <header class="header">
     <div class="logo">
@@ -23,17 +70,17 @@
         <span class="logo-sub">한국어로 한 걸음씩</span>
       </div>
     </div>
-    <div class="header-right">
+    <div class="header-right" style="display:flex;align-items:center;gap:8px;">
+      <button class="mentor-toggle-btn" id="mentorToggleBtn" onclick="toggleMentorView()">🎓 멘토 보기</button>
       <div class="level-chip" id="levelChip">🌿 기초</div>
     </div>
   </header>
-
-  <!-- 콘텐츠 영역 -->
+ 
   <main class="main" id="mainContent">
-
+ 
     <!-- ══ 탭1: 학습 ══ -->
     <section id="tab-learn" class="tab-panel active">
-
+ 
       <!-- 수준 평가 배너 -->
       <div class="eval-banner" id="evalBanner" onclick="startEval()">
         <div class="eval-left">
@@ -45,7 +92,7 @@
         </div>
         <span class="eval-arrow">›</span>
       </div>
-
+ 
       <!-- 수준 평가 화면 -->
       <div id="eval-screen" style="display:none">
         <div class="screen-header">
@@ -61,14 +108,14 @@
           <div class="eval-opts" id="evalOpts"></div>
         </div>
       </div>
-
+ 
       <!-- 메인 학습 화면 -->
       <div id="learn-main">
         <div class="ai-status">
           <span class="ai-dot"></span>
           AI 선생님 연결됨
         </div>
-
+ 
         <div class="section-label">모국어 선택</div>
         <div class="lang-grid">
           <button class="lang-card" data-lang="vi" onclick="selectLang(this,'vi','베트남어','🇻🇳','Tiếng Việt')">
@@ -87,7 +134,7 @@
             <span class="lang-native">Filipino</span>
           </button>
         </div>
-
+ 
         <div class="section-label">학습 카테고리</div>
         <div class="cat-grid">
           <button class="cat-card selected" data-cat="school" onclick="selectCat(this,'school','학교생활')">
@@ -101,7 +148,7 @@
             <span class="cat-desc">국어·수학·과학·사회</span>
           </button>
         </div>
-
+ 
         <div class="section-label">학습 모드</div>
         <div class="mode-row">
           <button class="mode-btn" onclick="showMode('chat')">
@@ -118,7 +165,7 @@
           </button>
         </div>
       </div>
-
+ 
       <!-- 챗봇 화면 -->
       <div id="mode-chat" style="display:none">
         <div class="screen-header">
@@ -148,7 +195,7 @@
         </div>
         <div class="quick-chips" id="quickChips"></div>
       </div>
-
+ 
       <!-- 퀴즈 화면 -->
       <div id="mode-quiz" style="display:none">
         <div class="screen-header">
@@ -167,7 +214,7 @@
           <button class="next-btn" id="nextBtn" onclick="nextQuiz()" style="display:none">다음 문제 →</button>
         </div>
       </div>
-
+ 
       <!-- 복습 화면 -->
       <div id="mode-review" style="display:none">
         <div class="screen-header">
@@ -176,9 +223,9 @@
         </div>
         <div id="reviewContent"></div>
       </div>
-
+ 
     </section>
-
+ 
     <!-- ══ 탭2: 내 현황 ══ -->
     <section id="tab-dash" class="tab-panel">
       <div class="dash-title">내 학습 현황</div>
@@ -200,8 +247,8 @@
         </div>
         <div class="stat-card accent">
           <div class="stat-label">현재 수준</div>
-          <div class="stat-value level-text">🌿</div>
-          <div class="stat-unit">기초</div>
+          <div class="stat-value level-text" id="statLevelVal">🌿</div>
+          <div class="stat-unit" id="statLevelUnit">기초</div>
         </div>
       </div>
       <div class="section-label">중급까지의 여정</div>
@@ -251,7 +298,7 @@
         </div>
       </div>
     </section>
-
+ 
     <!-- ══ 탭3: 또래·멘토 ══ -->
     <section id="tab-match" class="tab-panel">
       <div class="match-tabs">
@@ -327,9 +374,9 @@
         </div>
       </div>
     </section>
-
+ 
   </main>
-
+ 
   <!-- 하단 탭바 -->
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('learn',this)">
@@ -345,12 +392,10 @@
       <span class="tab-label">또래·멘토</span>
     </button>
   </nav>
-
+ 
 </div>
-
-<!-- 토스트 -->
+ 
 <div class="toast" id="toast"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
