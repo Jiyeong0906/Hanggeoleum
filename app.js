@@ -406,15 +406,31 @@ function sendPeerMsg() {
 /* ════════════════════
    수준 평가
 ════════════════════ */
+/* ── 수준 평가: 정확한 정답이 있는 문항 포함 ── */
+// type: 'choice' = 자가진단, 'quiz' = 정답 있는 문제 (ans: 정답 인덱스)
 const EVAL_DATA = [
-  { q:'한국에 온 지 얼마나 됐나요?', opts:['1개월 이내','1~6개월','6개월~1년','1년 이상'], scores:[0,1,2,3] },
-  { q:'학교 수업을 얼마나 이해할 수 있나요?', opts:['거의 못 알아들어요','조금 알아들어요','절반 정도 알아들어요','대부분 알아들어요'], scores:[0,1,2,3] },
-  { q:'"선생님"이 무슨 뜻인지 알아요?', opts:['몰라요','들어봤어요','알아요','잘 알아요'], scores:[0,1,2,3] },
-  { q:'"급식"이 무슨 뜻인지 알아요?', opts:['몰라요','들어봤어요','알아요 — 학교 점심이에요','잘 알고 사용해요'], scores:[0,1,2,3] },
-  { q:'"체육 시간에 운동장에서 달리기를 했어요"를 이해할 수 있나요?', opts:['전혀 모르겠어요','몇 단어만 알아요','대강 이해해요','완전히 이해해요'], scores:[0,1,2,3] },
-  { q:'"분수"가 무엇인지 알아요?', opts:['몰라요','들어봤어요','알아요 — 수학 개념이에요','잘 알고 계산할 수 있어요'], scores:[0,1,2,3] },
-  { q:'친구에게 한국어로 자기소개를 할 수 있나요?', opts:['못해요','짧게 할 수 있어요','어느 정도 할 수 있어요','잘 할 수 있어요'], scores:[0,1,2,3] },
-  { q:'한국 드라마나 유튜브를 자막 없이 얼마나 이해해요?', opts:['거의 못 알아들어요','10~30%','30~60%','60% 이상'], scores:[0,1,2,3] },
+  // === 자가진단 (상황 파악) ===
+  { type:'choice', q:'한국에 온 지 얼마나 됐나요?',
+    opts:['1개월 이내','1~6개월','6개월~2년','2년 이상'], scores:[0,1,2,3] },
+  { type:'choice', q:'학교 수업을 얼마나 이해할 수 있나요?',
+    opts:['거의 못 알아들어요','단어 몇 개만 알아요','절반 정도 이해해요','대부분 이해해요'], scores:[0,1,2,3] },
+  // === 정답 있는 어휘 문제 ===
+  { type:'quiz', q:'"급식"은 무슨 뜻인가요?',
+    opts:['체육 시간','학교 점심 식사','교실 청소','숙제'], ans:1, scores:[0,3,0,0] },
+  { type:'quiz', q:'"숙제"는 언제 하는 건가요?',
+    opts:['학교에서 친구와','급식 먹을 때','집에서 혼자','체육 시간에'], ans:2, scores:[0,0,3,0] },
+  { type:'quiz', q:'"조회"는 무엇인가요?',
+    opts:['점심 시간','아침에 전교생이 모이는 시간','방과후 수업','청소 시간'], ans:1, scores:[0,3,0,0] },
+  // === 정답 있는 문장 이해 문제 ===
+  { type:'quiz', q:'"선생님, 화장실에 다녀와도 될까요?"의 뜻은?',
+    opts:['선생님을 부르는 말','화장실 허락을 구하는 말','청소를 하겠다는 말','숙제를 냈다는 말'], ans:1, scores:[0,3,0,0] },
+  { type:'quiz', q:'"오늘 체육 시간에 운동장에서 달리기를 했어요." — "달리기"는?',
+    opts:['음식 이름','수학 계산','빠르게 뛰는 운동','청소 도구'], ans:2, scores:[0,0,3,0] },
+  // === 고급 어휘 ===
+  { type:'quiz', q:'"민주주의"는 어떤 제도인가요?',
+    opts:['왕이 모든 결정을 내리는 제도','국민이 스스로 다스리는 제도','군인이 통치하는 제도','종교 지도자가 통치하는 제도'], ans:1, scores:[0,3,0,0] },
+  { type:'quiz', q:'"광합성"은 무엇인가요?',
+    opts:['동물이 먹이를 찾는 것','물이 증발하는 것','식물이 햇빛으로 양분을 만드는 것','바람이 부는 현상'], ans:2, scores:[0,0,3,0] },
 ];
  
 function startEval() {
@@ -433,16 +449,34 @@ function renderEval() {
   const q = EVAL_DATA[evalIdx];
   document.getElementById('evalPfill').style.width = ((evalIdx+1)/EVAL_DATA.length*100)+'%';
   document.getElementById('evalPtxt').textContent  = `${evalIdx+1} / ${EVAL_DATA.length}`;
-  document.getElementById('evalQ').textContent     = q.q;
+  document.getElementById('evalQ').innerHTML = (q.type === 'quiz' ? '<span class="eval-quiz-badge">📝 어휘 문제</span><br>' : '') + q.q;
   document.getElementById('evalOpts').innerHTML = q.opts.map((o,i) =>
-    `<button class="eval-opt" onclick="answerEval(${i})">${o}</button>`
+    `<button class="eval-opt" id="evalOpt${i}" onclick="answerEval(${i})">${o}</button>`
   ).join('');
 }
 function answerEval(idx) {
-  evalScore += EVAL_DATA[evalIdx].scores[idx];
-  evalIdx++;
-  if (evalIdx < EVAL_DATA.length) renderEval();
-  else finishEval();
+  const q = EVAL_DATA[evalIdx];
+  // 정답 있는 퀴즈 문항 피드백
+  if (q.type === 'quiz') {
+    document.querySelectorAll('.eval-opt').forEach(b => b.disabled = true);
+    const optBtns = document.querySelectorAll('.eval-opt');
+    if (idx === q.ans) {
+      optBtns[idx].style.background = '#2E7D5E';
+      optBtns[idx].style.color = '#fff';
+    } else {
+      optBtns[idx].style.background = '#E53E3E';
+      optBtns[idx].style.color = '#fff';
+      optBtns[q.ans].style.background = '#2E7D5E';
+      optBtns[q.ans].style.color = '#fff';
+    }
+    evalScore += q.scores[idx];
+    setTimeout(() => { evalIdx++; if (evalIdx < EVAL_DATA.length) renderEval(); else finishEval(); }, 900);
+  } else {
+    evalScore += q.scores[idx];
+    evalIdx++;
+    if (evalIdx < EVAL_DATA.length) renderEval();
+    else finishEval();
+  }
 }
 function finishEval() {
   const ratio = evalScore / (EVAL_DATA.length * 3);
@@ -468,6 +502,7 @@ function updateLevelUI() {
 ════════════════════ */
 function updateDash() {
   const emoji = { '입문':'🌱','기초':'🌿','중급':'🌳','고급':'🌲' };
+  const levels = ['입문','기초','중급','고급'];
   const sl = document.getElementById('statLearned');
   const sr = document.getElementById('statRate');
   const sv = document.getElementById('statLevelVal');
@@ -476,6 +511,18 @@ function updateDash() {
   if (sr) sr.textContent = totalQ > 0 ? Math.round(correctQ/totalQ*100) : '—';
   if (sv) sv.textContent = emoji[userLevel] || '🌿';
   if (su) su.textContent = userLevel;
+  const curIdx = levels.indexOf(userLevel);
+  document.querySelectorAll('.level-tag').forEach((tag, i) => {
+    if (i <= curIdx) tag.classList.add('active'); else tag.classList.remove('active');
+  });
+  const fill = document.querySelector('.level-fill');
+  const pctEl = document.querySelector('.level-pct');
+  const pct = levels.length > 1 ? Math.round((curIdx/(levels.length-1))*100) : 0;
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  const hint = document.querySelector('.level-hint');
+  if (hint && curIdx < levels.length-1) hint.textContent = '85% 이상 2주 연속 달성 시 ' + levels[curIdx+1] + '으로 올라가요!';
+  if (hint && curIdx === levels.length-1) hint.textContent = '🎉 최고 수준 고급에 도달했어요!';
 }
  
 /* ════════════════════
@@ -660,4 +707,51 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+ 
+/* ════════════════════
+   과제 모달
+════════════════════ */
+function openTaskModal(title, type, mentor, due, desc, status) {
+  const modal = document.getElementById('task-modal');
+  document.getElementById('task-modal-badge').textContent = type;
+  document.getElementById('task-modal-title').textContent = title;
+  document.getElementById('task-modal-mentor').textContent = `멘토: ${mentor} · 마감: ${due}`;
+  document.getElementById('task-modal-desc').textContent = desc;
+ 
+  const actionEl = document.getElementById('task-modal-action');
+  if (status === 'done') {
+    actionEl.innerHTML = `<div style="text-align:center;padding:12px;color:#2E7D5E;font-weight:700;font-size:14px;">✅ 이미 완료한 과제예요!</div>`;
+  } else {
+    // 과제 유형에 따라 다른 액션 버튼
+    let actionBtn = '';
+    if (type === '어휘 학습') {
+      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();switchTab('learn',document.querySelectorAll('#student-app .tab-btn')[0]);showMode('chat')">
+        💬 AI 챗봇으로 학습 시작하기
+      </button>`;
+    } else if (type === '퀴즈') {
+      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();switchTab('learn',document.querySelectorAll('#student-app .tab-btn')[0]);showMode('quiz')">
+        🎯 퀴즈 풀러 가기
+      </button>`;
+    } else {
+      actionBtn = `<button class="tf-submit" onclick="closeTaskModal();showToast('과제를 시작했어요!')">
+        ▶ 과제 시작하기
+      </button>`;
+    }
+    actionEl.innerHTML = actionBtn + `
+      <button onclick="submitStudentTask('${title}')" style="width:100%;margin-top:8px;padding:12px;background:#f0f0f0;color:#555;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;border:none;border-radius:12px;cursor:pointer;">
+        📤 과제 제출하기
+      </button>`;
+  }
+ 
+  modal.classList.add('open');
+}
+ 
+function closeTaskModal() {
+  document.getElementById('task-modal').classList.remove('open');
+}
+ 
+function submitStudentTask(title) {
+  closeTaskModal();
+  showToast(`"${title}" 과제를 제출했어요! 🎉`);
 }
