@@ -15,7 +15,16 @@ let evalIdx = 0, evalScore = 0;
 let activeChatPeer = null; // 현재 열린 대화 상대
  
 /* ── 부정적 언어 필터 ── */
-const BAD_WORDS = ['씨발','개새끼','병신','바보','멍청','죽어','지랄','fuck','shit','bitch','damn','asshole','stupid','idiot'];
+const BAD_WORDS = ['씨발','시발','씹할','씹팔','씨팔','씨빨','ㅅㅂ','ㅄ','ㅂㅅ',
+  '개새끼','개새','개놈','개년','씹새끼','씹년','씹놈',
+  '병신','븅신','등신','좆','좃','좆까','좆같','좆나','좆밥',
+  '존나','존내','존나게','염병','지랄','지랄하네','개지랄',
+  '닥쳐','꺼져','뒤져','죽어','뒈져','뒈져라','쳐죽',
+  '미친놈','미친년','또라이',
+                   
+   // 영어 욕설
+  'fuck','fucking','shit','bullshit','bitch','damn','asshole','bastard',
+  'motherfucker'];
 function containsBadWord(t) { const l=t.toLowerCase(); return BAD_WORDS.some(w=>l.includes(w)); }
  
 /* ── 퀴즈 데이터 (언어별 번역 포함) ── */
